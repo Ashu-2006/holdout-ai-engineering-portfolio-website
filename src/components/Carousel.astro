@@ -19,7 +19,7 @@ const cards = normalise(collection.items);
           data-slide
           type="button"
           aria-label={`Show item ${i + 1} of ${cards.length}`}
-          style={`view-transition-name:card-${collection.slug}-${i}`}
+          style={`aspect-ratio:${card.ratio};view-transition-name:card-${collection.slug}-${i}`}
         >
           <span class="fill"><Card card={card} /></span>
         </button>
@@ -68,20 +68,24 @@ const cards = normalise(collection.items);
 
   /* Every slide occupies the same grid cell, so they stack dead centre and the
      only thing separating them is the transform JS applies. */
+  /* Each slide keeps its own card's aspect-ratio (set inline per card) and is
+     capped to fit within a shared square budget on whichever axis is tighter —
+     max-width/max-height plus width/height:auto is what lets a browser size a
+     ratio-boxed element to "fit inside, don't crop" rather than "fill and
+     crop." A flat width=height square here was the earlier fix for vertical
+     centering, but it forced every card — including portrait note cards with
+     nothing to crop — into a literal square. */
   .slide {
     grid-area: 1 / 1;
     border: 0;
     padding: 0;
     background: none;
     cursor: pointer;
-    /* Capped against both axes so the centre card stays whole on a short laptop
-       screen and doesn't balloon on a wide one. Height is stated outright rather
-       than via aspect-ratio: the cards contain percentage-height children, and
-       those only resolve against a definite height. */
     position: relative;
-    --size: min(46vw, 52vh);
-    width: var(--size);
-    height: var(--size);
+    width: auto;
+    height: auto;
+    max-width: min(46vw, 52vh);
+    max-height: min(46vw, 52vh);
     min-width: 0;
     min-height: 0;
   }
@@ -94,6 +98,11 @@ const cards = normalise(collection.items);
   .fill {
     position: absolute;
     inset: 0;
+  }
+
+  /* On the static page too, a staged note is the reading surface. */
+  .slide :global(.note) {
+    overflow-y: auto;
   }
 
   .bar {
@@ -160,7 +169,6 @@ const cards = normalise(collection.items);
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     let active = 0;
-    let unit = slides[0]?.offsetWidth ?? 0;
 
     /* Hashed off the index rather than Math.random, so a card is tilted the same
        way every visit — a photo that lands at a different angle each reload
@@ -170,7 +178,7 @@ const cards = normalise(collection.items);
       return (noise - Math.floor(noise)) * 12 - 6;
     };
 
-    const positionOf = (i: number) => {
+    const positionOf = (i: number, unit: number) => {
       const d = i - active;
       /* First neighbour clears the centre card's half-width plus its own; the
          rest tile at a constant pitch beyond that. */
@@ -186,10 +194,12 @@ const cards = normalise(collection.items);
     };
 
     const render = (options: object) => {
+      // Cards no longer share one size — spacing is pitched off whichever is centred.
+      const unit = slides[active]?.offsetWidth ?? 0;
       slides.forEach((slide, i) => {
         // z-index can't animate, so it's set outright — nearest card on top.
         slide.style.zIndex = String(slides.length - Math.abs(i - active));
-        animate(slide, positionOf(i), options);
+        animate(slide, positionOf(i, unit), options);
       });
     };
 
@@ -215,9 +225,6 @@ const cards = normalise(collection.items);
     /* Card size is derived from viewport units, so the spacing it feeds has to
        be recomputed when that changes. Snap rather than animate — a resize is
        not a state change the user is watching. */
-    addEventListener("resize", () => {
-      unit = slides[0]?.offsetWidth ?? unit;
-      render({ duration: 0 });
-    });
+    addEventListener("resize", () => render({ duration: 0 }));
   }
 </script>

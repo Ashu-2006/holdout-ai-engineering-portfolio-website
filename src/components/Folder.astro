@@ -50,6 +50,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
           <div
             data-folder-item
             data-w={card.w}
+            data-kind={card.kind}
             class="item absolute left-1/2"
             style={`top:${card.top}%;width:${card.w}%;margin-left:${-card.w / 2}%;aspect-ratio:${card.ratio}`}
           >
@@ -78,6 +79,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 <style>
   .folder {
     transition: transform 160ms var(--ease-out);
+    outline: none;
   }
 
   /* Three stacked shadows rather than one: a tight contact shadow to seat the
@@ -208,6 +210,12 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
   .folder.is-stage [data-folder-item] {
     cursor: pointer;
+  }
+
+  /* In the folder a note is a cropped miniature page; on stage the same card
+     is the reading surface, so it gets to scroll. */
+  .folder.is-stage .note {
+    overflow-y: auto;
   }
 </style>
 
@@ -426,6 +434,8 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   const overlayTitle = overlay.querySelector<HTMLElement>(".fstage-title")!;
   const overlayMeta = overlay.querySelector<HTMLElement>(".fstage-meta")!;
 
+  const isNote = (c: Controller, i: number) => c.items[i].dataset.kind === "note";
+
   /* Where a card sits with no transform applied — offsetLeft/Top ignore
      transforms, so this is stable however far the fan has moved things. */
   const baseCenter = (c: Controller, i: number) => {
@@ -444,7 +454,25 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
     if (!stage) return;
     const { c, active, base } = stage;
     const unit = Math.min(innerWidth * 0.46, innerHeight * 0.52);
-    const reach = unit * (0.5 + GAP + SIDE / 2);
+
+    /* An article at centre gets a bigger budget than a picture — it's being
+       read, not looked at. Same card, just allowed more of the screen. */
+    const fit = (i: number) => {
+      const item = c.items[i];
+      if (i === active && isNote(c, i))
+        return Math.min(
+          (innerWidth * 0.6) / item.offsetWidth,
+          (innerHeight * 0.82) / item.offsetHeight,
+        );
+      const s = unit / Math.max(item.offsetWidth, item.offsetHeight);
+      return i === active ? s : s * SIDE;
+    };
+
+    /* Spacing pitches off the centre card's real visual width, so neighbours
+       clear it whether it's a photo at unit size or a full-width article. */
+    const halfCentre = (fit(active) * c.items[active].offsetWidth) / 2;
+    const reach = halfCentre + unit * GAP + (unit * SIDE) / 2;
+
     c.items.forEach((item, i) => {
       const d = i - active;
       const x =
@@ -452,14 +480,13 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
           ? innerWidth / 2
           : innerWidth / 2 +
             Math.sign(d) * (reach + (Math.abs(d) - 1) * unit * (SIDE + GAP));
-      const size = (d === 0 ? 1 : SIDE) * unit;
       item.style.zIndex = String(30 + c.items.length - Math.abs(d));
       animate(
         item,
         {
           x: x - base[i].x,
           y: innerHeight / 2 - base[i].y,
-          scale: size / Math.max(item.offsetWidth, item.offsetHeight),
+          scale: fit(i),
           rotate: d === 0 ? 0 : tilt(i),
           opacity: Math.max(0.3, 1 - Math.abs(d) * 0.16),
         },
@@ -536,10 +563,12 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
     await animate(c.flap, { rotateX: 0, opacity: 1 }, spring(shutSpring)).finished;
 
-    // Hand the cards back to the hover system in its own units — same pose.
+    /* Hand the cards back to the hover system in its own units — same pose.
+       Deliberately NOT restacking: the card you were just looking at keeps the
+       top of the pile, the way a real folder remembers what you last pulled
+       out. Reordering here was a visible z-snap the instant they landed. */
     c.deactivate();
     c.items.forEach((item, i) => animate(item, c.closedPct(i), instant));
-    c.restack();
     c.folder.classList.remove("is-stage");
     stage = null;
   };

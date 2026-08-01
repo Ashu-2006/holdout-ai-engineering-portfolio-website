@@ -29,15 +29,14 @@ const { card } = Astro.props;
     )
   }
 
+  {/* The whole article is always there, in miniature — cqw type means it's a
+      real tiny manuscript in the folder and readable prose once the stage
+      scales the very same card up. No stand-ins, no content swapping. */}
   {
     card.kind === "note" && (
       <div class="note">
         <p class="note-title">{card.note}</p>
-        <div class="note-body">
-          <span />
-          <span />
-          <span />
-        </div>
+        {card.body?.map((p) => <p class="note-p">{p}</p>)}
       </div>
     )
   }
@@ -90,37 +89,25 @@ const { card } = Astro.props;
       drop-shadow(0 8px 14px rgb(0 0 0 / 0.1));
   }
 
+  /* Hidden overflow here is the folder's page-crop; the stage flips it to
+     scroll when the card is the one being read. */
   .note {
-    display: flex;
-    flex-direction: column;
-    gap: 8cqw;
-    padding: 9cqw;
-  }
-
-  .note-title {
-    font-size: 10cqw;
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-neutral-700);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    height: 100%;
+    padding: 8cqw;
     overflow: hidden;
   }
 
-  .note-body {
-    display: flex;
-    flex-direction: column;
-    gap: 4cqw;
+  .note-title {
+    font-size: 7.5cqw;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-neutral-800);
   }
 
-  .note-body span {
-    height: 2.5cqw;
-    border-radius: 999px;
-    background: var(--color-neutral-200);
-  }
-
-  .note-body span:last-child {
-    width: 66%;
+  .note-p {
+    margin-top: 4cqw;
+    font-size: 4.2cqw;
+    line-height: 1.7;
+    color: var(--color-neutral-600);
   }
 </style>
