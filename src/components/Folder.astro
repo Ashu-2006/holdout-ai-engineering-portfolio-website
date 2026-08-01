@@ -221,8 +221,15 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   /* --radius is a fixed cqw proportion of the card's own width, which is right
      at folder scale (a few px) but reads as over-rounded once the same card is
      300–800px on stage - corner radius has to shrink relative to size to keep
-     looking like a corner rather than a stadium shape. */
-  .folder.is-stage .frame {
+     looking like a corner rather than a stadium shape.
+
+     This is its own class, not is-stage: is-stage only comes off once the
+     closing cards have fully landed and the flap has shut, which is exactly
+     the wrong moment for this — it made the radius snap back visibly on an
+     already-settled card. is-scaled flips at the instant the flight starts in
+     either direction, so it's mid-transition (and masked by everything else
+     moving) by the time you'd notice it. */
+  .folder.is-scaled .frame {
     --radius: 3.5cqw;
   }
 </style>
@@ -513,7 +520,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
     overlayMeta.textContent = c.folder.dataset.meta ?? "";
     overlay.classList.add("is-open");
     document.documentElement.style.overflow = "hidden";
-    c.folder.classList.add("is-stage");
+    c.folder.classList.add("is-stage", "is-scaled");
 
     /* Hand each card from the %-based hover system to the px-based stage at
        exactly its current pose: the computed matrix is that pose, whatever
@@ -546,6 +553,9 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
     overlay.classList.remove("is-open");
     document.documentElement.style.overflow = "";
+    // Radius starts easing back now, in step with the shrink about to start —
+    // not after it, once the cards have already landed.
+    c.folder.classList.remove("is-scaled");
 
     /* The reverse flight: cards fan back into the still-open folder first,
        centre card leading, then the flap swings up into view and shuts over

@@ -106,7 +106,8 @@ const cards = normalise(collection.items);
   }
 
   /* Same correction as the in-page stage: every slide here renders at full
-     stage size, so the folder-scale --radius would read as over-rounded. */
+     stage size, so the folder-scale --radius would read as over-rounded.
+     Static page, no open/close to time — no toggle needed here. */
   .slide :global(.frame) {
     --radius: 3.5cqw;
   }

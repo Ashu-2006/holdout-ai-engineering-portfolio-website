@@ -21,7 +21,7 @@ const { title = "Fayaz Ahmed", full = false } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
-  <body class:list={[!full && "max-w-xl mx-auto px-4 md:px-0"]}>
+  <body class:list={[!full && "max-w-xl mx-auto px-4 md:px-0", "bg-neutral-50"]}>
     {!full && <Header />}
     <slot />
   </body>
