@@ -33,8 +33,14 @@ export const collections: Collection[] = [
     title: "Projects",
     meta: "9 things I built",
     items: [
-      { logo: "https://pdfstudio-demo.fayaz.workers.dev/favicon.svg", label: "PDF Studio" },
-      { logo: "https://screendrop.fayazahmed.com/favicon.ico", label: "Screendrop" },
+      {
+        logo: "https://pdfstudio-demo.fayaz.workers.dev/favicon.svg",
+        label: "PDF Studio",
+      },
+      {
+        logo: "https://screendrop.fayazahmed.com/favicon.ico",
+        label: "Screendrop",
+      },
       { logo: "https://codereel.fayazahmed.com/logo.png", label: "CodeReel" },
       { logo: "https://supersaas.dev/logo.png", label: "Supersaas" },
     ],
@@ -45,12 +51,13 @@ export const collections: Collection[] = [
     meta: "23 posts",
     items: [
       {
-        note: "Why I stopped reaching for a framework",
+        note: "How tanstack start became my default framework",
         body: [
-          "For years my first move on any new idea was npm create something. A framework, a router, a state library - the whole apparatus before a single line of the actual thing existed.",
-          "Then I built a tiny tool with nothing but an HTML file and a script tag, and shipped it the same evening. Nobody asked what it was built with. Nobody could tell.",
-          "The lesson wasn't that frameworks are bad - I still reach for them when the problem calls for one. The lesson was that the reach had become a reflex, and reflexes don't check whether the problem is there.",
-          "Now the default is inverted. Start with the platform, add tools when the platform runs out. It runs out far later than I used to assume.",
+          "Personally I have always been picky about my tech stack, but I saw a tweet from Kitze stating - 'It doesn't matter anymore'",
+          "As much as I disagreed with the statement, it's actually true.",
+          "Nobody's writing code the way they used to, just throw something at your agent and let it figure out.",
+          "But this meant everytime I made a new project - the stack was quite random",
+          "I had to ground my agent with this little oss template I made - agent first.",
         ],
       },
       {
