@@ -262,9 +262,14 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* Springy on the way out, quicker and calmer on the way back — the folder is
-     showing off when it opens and just getting out of the way when it closes. */
+     showing off when it opens and just getting out of the way when it closes.
+     Singling out one card happens far more often than opening the folder, so it
+     runs quicker and with less bounce; at 0.35 it would feel like a toy. */
   const openSpring = { type: "spring", duration: 0.55, bounce: 0.35 } as const;
   const closeSpring = { type: "spring", duration: 0.3, bounce: 0.1 } as const;
+  const focusSpring = { type: "spring", duration: 0.3, bounce: 0.18 } as const;
+
+  const PUSH = 4; // how far neighbours yield, in % of the folder's width
 
   document.querySelectorAll<HTMLElement>("[data-folder]").forEach((folder) => {
     const flap = folder.querySelector<HTMLElement>("[data-folder-flap]")!;
@@ -279,41 +284,59 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
     const gaps = Math.max(items.length - 1, 1);
     const widthOf = (el: HTMLElement) => Number(el.dataset.w) || 36;
     const step = (100 - Math.max(...items.map(widthOf))) / gaps;
-    const shift = (i: number, folderPct: number) =>
-      `${((offset(i) * folderPct) / widthOf(items[i])) * 100}%`;
+    const toEl = (i: number, folderPct: number) =>
+      `${(folderPct / widthOf(items[i])) * 100}%`;
+
+    let expanded = false;
+    let focused: number | null = null;
 
     // Centre card sits on top of the stack, the rest tuck behind it.
-    items.forEach((item, i) => {
-      item.style.zIndex = String(items.length - Math.round(Math.abs(offset(i))));
-    });
+    const naturalZ = (i: number) => items.length - Math.round(Math.abs(offset(i)));
+    const restack = () =>
+      items.forEach((item, i) => {
+        item.style.zIndex = String(i === focused ? items.length + 1 : naturalZ(i));
+      });
 
-    const closed = (i: number) => ({
-      x: shift(i, 6),
-      y: "0%",
-      rotate: offset(i) * (6 / gaps),
-      scale: 1,
-    });
+    const positionOf = (i: number) => {
+      if (!expanded) {
+        return {
+          x: toEl(i, offset(i) * 6),
+          y: "0%",
+          rotate: offset(i) * (6 / gaps),
+          scale: 1,
+        };
+      }
+      /* The singled-out card straightens up and rises, the way you'd pull one
+         print out of a fanned stack to look at it; the rest lean away. */
+      const isFocus = i === focused;
+      const yields = focused !== null && !isFocus;
+      return {
+        x: toEl(i, offset(i) * step + (yields ? Math.sign(i - focused!) * PUSH : 0)),
+        y: isFocus ? "-34%" : "-24%",
+        rotate: isFocus ? 0 : offset(i) * (11 / gaps),
+        scale: isFocus ? 1.05 : 1,
+      };
+    };
 
-    const open = (i: number) => ({
-      x: shift(i, step),
-      y: "-24%",
-      rotate: offset(i) * (11 / gaps),
-      scale: 1,
-    });
-
-    items.forEach((item, i) => animate(item, closed(i), { duration: 0 }));
-
-    const setOpen = (isOpen: boolean) => {
-      const spring = isOpen ? openSpring : closeSpring;
-      const stagger = isOpen ? 0.04 : 0.02;
-
-      animate(flap, { rotateX: isOpen ? -30 : 0 }, spring);
+    const apply = (spring: object, stagger = 0) =>
       items.forEach((item, i) =>
-        animate(item, isOpen ? open(i) : closed(i), {
+        animate(item, positionOf(i), {
           ...spring,
           delay: Math.abs(offset(i)) * stagger,
         }),
       );
+
+    restack();
+    apply({ duration: 0 });
+
+    const setOpen = (isOpen: boolean) => {
+      expanded = isOpen;
+      if (!isOpen) focused = null;
+      const spring = isOpen ? openSpring : closeSpring;
+
+      restack();
+      animate(flap, { rotateX: isOpen ? -30 : 0 }, spring);
+      apply(spring, isOpen ? 0.04 : 0.02);
     };
 
     if (reduced) return;
@@ -322,6 +345,21 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
       setOpen(true);
       return () => setOpen(false);
     });
+
+    /* Whichever card was singled out last keeps the top of the stack until
+       another takes it. Dropping it back on pointer-out would flick it behind
+       its neighbours halfway through settling. */
+    items.forEach((item, i) =>
+      hover(item, () => {
+        focused = i;
+        restack();
+        apply(focusSpring);
+        return () => {
+          if (focused === i) focused = null;
+          apply(focusSpring);
+        };
+      }),
+    );
 
     // Keyboard parity for the linked variant.
     folder.addEventListener("focusin", () => setOpen(true));
