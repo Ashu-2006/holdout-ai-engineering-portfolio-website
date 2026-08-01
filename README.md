@@ -3,7 +3,7 @@
 A small personal portfolio built with [Astro](https://astro.build), Tailwind CSS 4, and [Motion](https://motion.dev). Your stuff lives in little folders — travel photos, projects, writing — that open up into full collections.
 
 > [!NOTE]
-> This is an experiment. There are a lot of edge cases where it's not perfect — expect rough edges. Issues and PRs are welcome.
+> This is an experiment. There are a lot of edge cases where it's not perfect, so expecta lot of rough edges. I have not tested this on phones, just made this, thought it looked good and deployed. If anyone wants to polish this - send a pr.
 
 ## Deploy
 
