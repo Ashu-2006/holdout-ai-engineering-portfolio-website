@@ -1,46 +1,48 @@
-# Astro Starter Kit: Basics
+# Portfolio Site Template
+
+A small personal portfolio built with [Astro](https://astro.build), Tailwind CSS 4, and [Motion](https://motion.dev). Your stuff lives in little folders — travel photos, projects, writing — that open up into full collections.
+
+> [!NOTE]
+> This is an experiment. There are a lot of edge cases where it's not perfect — expect rough edges. Issues and PRs are welcome.
+
+## Deploy
+
+Deploy your own copy to Cloudflare Workers with one click:
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/fayazara/portfolio-site-template)
+
+Or deploy manually from your machine:
 
 ```sh
-pnpm create astro@latest -- --template basics
+pnpm install
+pnpm run deploy
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Getting Started
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+```sh
+pnpm install
+pnpm dev
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+The site runs at `localhost:4321`.
 
-## 🧞 Commands
+## Make It Yours
 
-All commands are run from the root of the project, from a terminal:
+- **`src/data/collections.ts`** — the folders on the homepage and everything inside them. Items can be images, project logos with labels, or short notes.
+- **`src/components/About.astro`** — your name, photo, and intro.
+- **`src/layouts/Layout.astro`** — page title, meta, and global chrome.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+## Commands
 
-## 👀 Want to learn more?
+| Command           | Action                                       |
+| :---------------- | :------------------------------------------- |
+| `pnpm install`    | Install dependencies                         |
+| `pnpm dev`        | Start local dev server at `localhost:4321`   |
+| `pnpm build`      | Build the production site to `./dist/`       |
+| `pnpm preview`    | Preview the build locally before deploying   |
+| `pnpm run deploy` | Build and deploy to Cloudflare Workers       |
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## License
+
+MIT
