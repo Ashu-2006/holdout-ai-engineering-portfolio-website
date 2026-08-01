@@ -9,3 +9,22 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
+
+/* Native cross-document transitions: no router, no JS. Cards carry matching
+   view-transition-names in the folder and in the carousel, so the browser
+   morphs each one from where it sat in the folder to where it lands on the
+   page. Browsers without support just navigate. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*) {
+  animation-duration: 460ms;
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

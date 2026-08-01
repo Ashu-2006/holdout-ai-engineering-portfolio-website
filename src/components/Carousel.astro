@@ -1,0 +1,223 @@
+---
+import Card from "./Card.astro";
+import { normalise, type Collection } from "../data/collections";
+
+interface Props {
+  collection: Collection;
+}
+
+const { collection } = Astro.props;
+const cards = normalise(collection.items);
+---
+
+<div class="stage" data-carousel data-slug={collection.slug}>
+  <div class="rail">
+    {
+      cards.map((card, i) => (
+        <button
+          class="slide"
+          data-slide
+          type="button"
+          aria-label={`Show item ${i + 1} of ${cards.length}`}
+          style={`view-transition-name:card-${collection.slug}-${i}`}
+        >
+          <span class="fill"><Card card={card} /></span>
+        </button>
+      ))
+    }
+  </div>
+
+  <header class="bar">
+    <div>
+      <h1 class="text-sm font-medium text-neutral-800">{collection.title}</h1>
+      <p class="mt-0.5 text-xs text-neutral-500">{collection.meta}</p>
+    </div>
+    <a href="/" class="close" aria-label="Back">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"></path>
+      </svg>
+    </a>
+  </header>
+
+  {/* No arrows and no dots, so the one thing worth saying is said once. */}
+  <p class="hint">Use ← → to move</p>
+</div>
+
+<style>
+  .stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: rgb(250 250 250 / 0.86);
+    backdrop-filter: blur(24px) saturate(140%);
+    animation: scrim 300ms var(--ease-out) both;
+  }
+
+  @keyframes scrim {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .rail {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  /* Every slide occupies the same grid cell, so they stack dead centre and the
+     only thing separating them is the transform JS applies. */
+  .slide {
+    grid-area: 1 / 1;
+    border: 0;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    /* Capped against both axes so the centre card stays whole on a short laptop
+       screen and doesn't balloon on a wide one. Height is stated outright rather
+       than via aspect-ratio: the cards contain percentage-height children, and
+       those only resolve against a definite height. */
+    position: relative;
+    --size: min(46vw, 52vh);
+    width: var(--size);
+    height: var(--size);
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* The card is taken out of flow entirely, so the slide's height is exactly the
+     square above and nothing else. Left in flow, the photo's intrinsic height
+     leaks back in through the percentage-height chain and the grid item's
+     automatic minimum size, which is what kept stretching each slide to its own
+     aspect ratio. */
+  .fill {
+    position: absolute;
+    inset: 0;
+  }
+
+  .bar {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    padding: 1.5rem;
+  }
+
+  .close {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    color: var(--color-neutral-500);
+    background: rgb(255 255 255 / 0.7);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+    transition:
+      color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+
+  .close svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .close:active {
+    transform: scale(0.94);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .close:hover {
+      color: var(--color-neutral-800);
+    }
+  }
+
+  .hint {
+    position: absolute;
+    inset: auto 0 1.75rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-neutral-400);
+  }
+</style>
+
+<script>
+  import { animate } from "motion";
+
+  /* Side cards sit at 60% so the centre one is clearly the subject, with a gap
+     of 8% of a card between neighbours. Together these put the third card out
+     at the viewport edge, half in frame — the row reads as continuing past
+     what you can see rather than ending. */
+  const SIDE = 0.6;
+  const GAP = 0.08;
+  const spring = { type: "spring", duration: 0.45, bounce: 0.15 } as const;
+
+  const stage = document.querySelector<HTMLElement>("[data-carousel]");
+  if (stage) {
+    const slides = [...stage.querySelectorAll<HTMLElement>("[data-slide]")];
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let active = 0;
+    let unit = slides[0]?.offsetWidth ?? 0;
+
+    /* Hashed off the index rather than Math.random, so a card is tilted the same
+       way every visit — a photo that lands at a different angle each reload
+       reads as a glitch, not as character. */
+    const tilt = (i: number) => {
+      const noise = Math.sin((i + 1) * 127.1) * 43758.5453;
+      return (noise - Math.floor(noise)) * 12 - 6;
+    };
+
+    const positionOf = (i: number) => {
+      const d = i - active;
+      /* First neighbour clears the centre card's half-width plus its own; the
+         rest tile at a constant pitch beyond that. */
+      const reach = unit * (0.5 + GAP + SIDE / 2);
+      const beyond = (Math.abs(d) - 1) * unit * (SIDE + GAP);
+      return {
+        x: d === 0 ? 0 : Math.sign(d) * (reach + beyond),
+        scale: d === 0 ? 1 : SIDE,
+        // The one you're actually looking at hangs straight.
+        rotate: d === 0 ? 0 : tilt(i),
+        opacity: Math.max(0, 1 - Math.abs(d) * 0.16),
+      };
+    };
+
+    const render = (options: object) => {
+      slides.forEach((slide, i) => {
+        // z-index can't animate, so it's set outright — nearest card on top.
+        slide.style.zIndex = String(slides.length - Math.abs(i - active));
+        animate(slide, positionOf(i), options);
+      });
+    };
+
+    const go = (next: number) => {
+      const clamped = Math.max(0, Math.min(slides.length - 1, next));
+      if (clamped === active) return;
+      active = clamped;
+      render(reduced ? { duration: 0 } : spring);
+    };
+
+    render({ duration: 0 });
+
+    slides.forEach((slide, i) => slide.addEventListener("click", () => go(i)));
+
+    addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight") go(active + 1);
+      else if (event.key === "ArrowLeft") go(active - 1);
+      else if (event.key === "Escape") location.assign("/");
+      else return;
+      event.preventDefault();
+    });
+
+    /* Card size is derived from viewport units, so the spacing it feeds has to
+       be recomputed when that changes. Snap rather than animate — a resize is
+       not a state change the user is watching. */
+    addEventListener("resize", () => {
+      unit = slides[0]?.offsetWidth ?? unit;
+      render({ duration: 0 });
+    });
+  }
+</script>

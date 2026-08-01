@@ -1,0 +1,18 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Carousel from "../components/Carousel.astro";
+import { collections } from "../data/collections";
+
+export function getStaticPaths() {
+  return collections.map((collection) => ({
+    params: { slug: collection.slug },
+    props: { collection },
+  }));
+}
+
+const { collection } = Astro.props;
+---
+
+<Layout title={`${collection.title} — Fayaz Ahmed`} full>
+  <Carousel collection={collection} />
+</Layout>

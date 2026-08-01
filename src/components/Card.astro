@@ -1,0 +1,126 @@
+---
+import type { Card } from "../data/collections";
+
+interface Props {
+  card: Card;
+}
+
+const { card } = Astro.props;
+---
+
+{/* Fills whatever frame it's given — a shaped slot in a folder, or a slide in
+    the carousel — so the same object appears in both places. The wrapper exists
+    to be the query container: the elements below size themselves in cqw against
+    it, and an element can't query itself. */}
+<div class="frame">
+  {
+    card.kind === "photo" && (
+      <figure class="photo">
+        <img src={card.src} alt="" loading="lazy" />
+      </figure>
+    )
+  }
+
+  {/* A logo is already a shape — putting it on a card gives it a second,
+      competing one. It sits as itself. */}
+  {
+    card.kind === "logo" && (
+      <img class="logo" src={card.logo} alt={card.label ?? ""} loading="lazy" />
+    )
+  }
+
+  {
+    card.kind === "note" && (
+      <div class="note">
+        <p class="note-title">{card.note}</p>
+        <div class="note-body">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  /* Everything inside is sized in cqw — % of the card's own width — so a card
+     rendered at 90px in a folder and at 350px in the carousel is proportionally
+     identical rather than one having chunky corners and hairline text. */
+  .frame {
+    container-type: inline-size;
+    height: 100%;
+    width: 100%;
+    --pad: 3cqw;
+    --radius: 9cqw;
+    --edge: 0 0 0 1px rgb(0 0 0 / 0.05);
+    --lift: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 16px rgb(0 0 0 / 0.12);
+  }
+
+  .photo,
+  .note,
+  .logo {
+    height: 100%;
+    width: 100%;
+  }
+
+  .photo,
+  .note {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--edge), var(--lift);
+  }
+
+  .photo {
+    padding: var(--pad);
+  }
+
+  /* Concentric corners: the inner radius is the outer minus the gap between
+     them. Matching the two makes the matte look pinched at the corners. */
+  .photo img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    border-radius: calc(var(--radius) - var(--pad));
+  }
+
+  .logo {
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.12))
+      drop-shadow(0 8px 14px rgb(0 0 0 / 0.1));
+  }
+
+  .note {
+    display: flex;
+    flex-direction: column;
+    gap: 8cqw;
+    padding: 9cqw;
+  }
+
+  .note-title {
+    font-size: 10cqw;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-neutral-700);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .note-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4cqw;
+  }
+
+  .note-body span {
+    height: 2.5cqw;
+    border-radius: 999px;
+    background: var(--color-neutral-200);
+  }
+
+  .note-body span:last-child {
+    width: 66%;
+  }
+</style>

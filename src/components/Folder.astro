@@ -1,63 +1,19 @@
 ---
 import { Icon } from "astro-icon/components";
-
-/* Three kinds of thing can sit in a folder. A bare string is a photo; the rest
-   are told apart by which key they carry. `w`/`ratio`/`top` override the shape
-   the cycle would otherwise pick — sizes are % of the folder's width. */
-type Shape = { w?: number; ratio?: string; top?: number };
-type FolderItem =
-  | string
-  | ({ src: string } & Shape)
-  | ({ logo: string; label?: string } & Shape)
-  | ({ note: string } & Shape);
+import Card from "./Card.astro";
+import { normalise, type Collection } from "../data/collections";
 
 interface Props {
-  title: string;
-  meta?: string;
-  href?: string;
-  /** Contents of the folder. Ignored when a slot is passed. */
-  items?: FolderItem[];
+  collection: Collection;
   class?: string;
 }
 
-const { title, meta, href, items = [], class: className = "" } = Astro.props;
-const Tag = href ? "a" : "div";
-
-/* A stack of identically-shaped cards reads as a template. Cycling shapes and
-   hanging them at different heights makes it look like real things stuffed into
-   a folder. Photos vary the most; logos want to stay square, paper stays
-   portrait, so those cycles only vary width and how far they're pushed in. */
-const SHAPES = {
-  photo: [
-    { w: 34, ratio: "4/5", top: 5 },
-    { w: 44, ratio: "4/3", top: 9 },
-    { w: 37, ratio: "1/1", top: 4 },
-    { w: 42, ratio: "3/2", top: 10 },
-    { w: 32, ratio: "3/4", top: 6 },
-  ],
-  logo: [
-    { w: 36, ratio: "1/1", top: 6 },
-    { w: 40, ratio: "1/1", top: 10 },
-    { w: 34, ratio: "1/1", top: 4 },
-    { w: 38, ratio: "1/1", top: 12 },
-  ],
-  note: [
-    { w: 34, ratio: "3/4", top: 5 },
-    { w: 37, ratio: "3/4", top: 9 },
-    { w: 33, ratio: "3/4", top: 3 },
-    { w: 36, ratio: "3/4", top: 11 },
-  ],
-};
-
-const cards = items.map((item, i) => {
-  const value = typeof item === "string" ? { src: item } : item;
-  const kind = "logo" in value ? "logo" : "note" in value ? "note" : "photo";
-  const cycle = SHAPES[kind];
-  return { kind, ...cycle[i % cycle.length], ...value } as const;
-});
+const { collection, class: className = "" } = Astro.props;
+const { slug, title, meta } = collection;
+const cards = normalise(collection.items);
 
 // Gradients are per-instance, so the id has to be too.
-const fillId = `folder-${Math.random().toString(36).slice(2, 8)}`;
+const fillId = `folder-${slug}`;
 
 /* One continuous silhouette — tab and body share an outline, joined by a wide
    concave sweep (r=34). A tight fillet reads as a notch cut out of a card; the
@@ -68,7 +24,13 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   A30,30 0 0 1 370,340 L30,340 A30,30 0 0 1 0,310 Z`;
 ---
 
-<Tag href={href} data-folder class:list={["folder group block", className]}>
+<a
+  href={`/${slug}`}
+  data-folder={slug}
+  data-title={title}
+  data-meta={meta}
+  class:list={["folder group block", className]}
+>
   <div class="relative aspect-20/17 w-full [perspective:1000px]">
     <svg viewBox="0 0 400 340" class="back absolute inset-0 h-full w-full" aria-hidden="true">
       <defs>
@@ -84,41 +46,16 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
     {/* contents — sized in % of the folder so cards keep their own shape */}
     <div class="absolute inset-0 z-0">
       {
-        cards.length > 0 ? (
-          cards.map((card) => (
-            <div
-              data-folder-item
-              data-w={card.w}
-              class="item absolute left-1/2"
-              style={`top:${card.top}%;width:${card.w}%;margin-left:${-card.w / 2}%;aspect-ratio:${card.ratio}`}
-            >
-              {card.kind === "photo" && (
-                <figure class="photo">
-                  <img src={card.src} alt="" loading="lazy" />
-                </figure>
-              )}
-
-              {/* A logo is already a shape — putting it on a card gives it a
-                  second, competing one. It sits in the folder as itself. */}
-              {card.kind === "logo" && (
-                <img class="logo" src={card.logo} alt={card.label ?? ""} loading="lazy" />
-              )}
-
-              {card.kind === "note" && (
-                <div class="note">
-                  <p class="note-title">{card.note}</p>
-                  <div class="note-body">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
-        ) : (
-          <slot />
-        )
+        cards.map((card, i) => (
+          <div
+            data-folder-item
+            data-w={card.w}
+            class="item absolute left-1/2"
+            style={`top:${card.top}%;width:${card.w}%;margin-left:${-card.w / 2}%;aspect-ratio:${card.ratio}`}
+          >
+            <Card card={card} />
+          </div>
+        ))
       }
     </div>
 
@@ -132,15 +69,11 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
           <p class="truncate text-sm font-medium text-neutral-800">{title}</p>
           {meta && <p class="mt-0.5 truncate text-xs text-neutral-500">{meta}</p>}
         </div>
-        {
-          href && (
-            <Icon name="ph:arrow-up-right-bold" class="size-4 shrink-0 text-neutral-400" />
-          )
-        }
+        <Icon name="ph:arrow-up-right-bold" class="size-4 shrink-0 text-neutral-400" />
       </div>
     </div>
   </div>
-</Tag>
+</a>
 
 <style>
   .folder {
@@ -156,81 +89,6 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
     filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.06))
       drop-shadow(0 6px 12px rgb(0 0 0 / 0.06))
       drop-shadow(0 18px 32px rgb(0 0 0 / 0.07));
-  }
-
-  /* Everything inside a card is sized in cqw — % of the card's own width — so a
-     folder rendered at 200px or 600px gets the same proportions. The query
-     container has to be this wrapper, not the card: an element can't query
-     itself. */
-  .item {
-    container-type: inline-size;
-    --pad: 3cqw;
-    --radius: 9cqw;
-    --edge: 0 0 0 1px rgb(0 0 0 / 0.05);
-    --lift: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 16px rgb(0 0 0 / 0.12);
-  }
-
-  .photo,
-  .note {
-    height: 100%;
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: var(--edge), var(--lift);
-  }
-
-  .photo {
-    padding: var(--pad);
-  }
-
-  /* Concentric corners: the inner radius is the outer minus the gap between
-     them. Matching the two makes the matte look pinched at the corners. */
-  .photo img {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-    border-radius: calc(var(--radius) - var(--pad));
-  }
-
-  .logo {
-    height: 100%;
-    width: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.12))
-      drop-shadow(0 8px 14px rgb(0 0 0 / 0.1));
-  }
-
-  .note {
-    display: flex;
-    flex-direction: column;
-    gap: 8cqw;
-    padding: 9cqw;
-  }
-
-  .note-title {
-    font-size: 10cqw;
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-neutral-700);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .note-body {
-    display: flex;
-    flex-direction: column;
-    gap: 4cqw;
-  }
-
-  .note-body span {
-    height: 2.5cqw;
-    border-radius: 999px;
-    background: var(--color-neutral-200);
-  }
-
-  .note-body span:last-child {
-    width: 66%;
   }
 
   /* The back panel's corners are SVG units that scale with the folder, so a fixed
@@ -256,23 +114,166 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   }
 </style>
 
+{/* Stage chrome is created by the script, so these can't be scoped styles —
+    Astro's scope attribute never lands on JS-built elements. */}
+<style is:global>
+  .fstage {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgb(250 250 250 / 0.86);
+    backdrop-filter: blur(24px) saturate(140%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms var(--ease-out);
+  }
+
+  .fstage.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .fstage-bar {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    padding: 1.5rem;
+  }
+
+  .fstage-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-neutral-800);
+  }
+
+  .fstage-meta {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    color: var(--color-neutral-500);
+  }
+
+  .fstage-close {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--color-neutral-500);
+    background: rgb(255 255 255 / 0.7);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+    transition:
+      color 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+
+  .fstage-close svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .fstage-close:active {
+    transform: scale(0.94);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .fstage-close:hover {
+      color: var(--color-neutral-800);
+    }
+  }
+
+  .fstage-hint {
+    position: absolute;
+    inset: auto 0 1.75rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-neutral-400);
+  }
+
+  /* The staged folder rises above the scrim, and its press feedback is retired
+     while the stage owns the motion. !important because the scoped .folder
+     rules compile to equal specificity. */
+  a.folder.is-stage {
+    position: relative;
+    z-index: 50;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .folder.is-stage [data-folder-flap] {
+    pointer-events: none;
+  }
+
+  .folder.is-stage [data-folder-item] {
+    cursor: pointer;
+  }
+</style>
+
 <script>
   import { animate, hover } from "motion";
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const instant = { duration: 0 } as const;
+  const spring = (s: object) => (reduced ? instant : s);
 
-  /* Springy on the way out, quicker and calmer on the way back — the folder is
-     showing off when it opens and just getting out of the way when it closes.
-     Singling out one card happens far more often than opening the folder, so it
-     runs quicker and with less bounce; at 0.35 it would feel like a toy. */
+  /* Hover springs: showing off on open, out of the way on close, quick when
+     singling out one card (that happens too often to bounce like a toy).
+     Stage springs: the flight out to centre stage, steps between cards, the
+     flight home, and the flap shutting over the landed cards. */
   const openSpring = { type: "spring", duration: 0.55, bounce: 0.35 } as const;
   const closeSpring = { type: "spring", duration: 0.3, bounce: 0.1 } as const;
   const focusSpring = { type: "spring", duration: 0.3, bounce: 0.18 } as const;
+  const flingSpring = { type: "spring", duration: 0.45, bounce: 0.2 } as const;
+  const stageSpring = { type: "spring", duration: 0.55, bounce: 0.18 } as const;
+  const homeSpring = { type: "spring", duration: 0.5, bounce: 0.12 } as const;
+  const shutSpring = { type: "spring", duration: 0.6, bounce: 0.25 } as const;
 
-  const PUSH = 4; // how far neighbours yield, in % of the folder's width
+  const PUSH = 4; // how far neighbours yield on hover, in % of the folder's width
+  const SIDE = 0.6; // side-card scale on stage
+  const GAP = 0.08; // gap between staged cards, in units of card size
+
+  /* Hashed off the index rather than Math.random, so a card is tilted the same
+     way every visit — a photo that lands at a different angle each time reads
+     as a glitch, not as character. */
+  const tilt = (i: number) => {
+    const n = Math.sin((i + 1) * 127.1) * 43758.5453;
+    return (n - Math.floor(n)) * 12 - 6;
+  };
+
+  interface Controller {
+    slug: string;
+    folder: HTMLElement;
+    wrap: HTMLElement;
+    flap: HTMLElement;
+    items: HTMLElement[];
+    offset: (i: number) => number;
+    gaps: number;
+    closedPct: (i: number) => object;
+    closedRotate: (i: number) => number;
+    restack: () => void;
+    deactivate: () => void;
+  }
+
+  const controllers = new Map<string, Controller>();
+
+  let stage: {
+    slug: string;
+    c: Controller;
+    active: number;
+    base: { x: number; y: number }[];
+    closing: boolean;
+  } | null = null;
+
+  /* ------------------------------------------------------------------ */
+  /* Folders: hover fan, single-out, press                               */
+  /* ------------------------------------------------------------------ */
 
   document.querySelectorAll<HTMLElement>("[data-folder]").forEach((folder) => {
+    const slug = folder.dataset.folder ?? "";
     const flap = folder.querySelector<HTMLElement>("[data-folder-flap]")!;
+    const wrap = flap.parentElement!;
     const items = [...folder.querySelectorAll<HTMLElement>("[data-folder-item]")];
     const mid = (items.length - 1) / 2;
     const offset = (i: number) => i - mid;
@@ -297,15 +298,17 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
         item.style.zIndex = String(i === focused ? items.length + 1 : naturalZ(i));
       });
 
+    const closedRotate = (i: number) => offset(i) * (6 / gaps);
+    const closedPct = (i: number) => ({
+      x: toEl(i, offset(i) * 6),
+      y: "0%",
+      rotate: closedRotate(i),
+      scale: 1,
+      opacity: 1,
+    });
+
     const positionOf = (i: number) => {
-      if (!expanded) {
-        return {
-          x: toEl(i, offset(i) * 6),
-          y: "0%",
-          rotate: offset(i) * (6 / gaps),
-          scale: 1,
-        };
-      }
+      if (!expanded) return closedPct(i);
       /* The singled-out card straightens up and rises, the way you'd pull one
          print out of a fanned stack to look at it; the rest lean away. */
       const isFocus = i === focused;
@@ -318,32 +321,52 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
       };
     };
 
-    const apply = (spring: object, stagger = 0) =>
+    const apply = (s: object, stagger = 0) =>
       items.forEach((item, i) =>
         animate(item, positionOf(i), {
-          ...spring,
+          ...s,
           delay: Math.abs(offset(i)) * stagger,
         }),
       );
 
     restack();
-    apply({ duration: 0 });
+    apply(instant);
 
     const setOpen = (isOpen: boolean) => {
       expanded = isOpen;
       if (!isOpen) focused = null;
-      const spring = isOpen ? openSpring : closeSpring;
-
       restack();
-      animate(flap, { rotateX: isOpen ? -30 : 0 }, spring);
-      apply(spring, isOpen ? 0.04 : 0.02);
+      animate(flap, { rotateX: isOpen ? -30 : 0 }, spring(isOpen ? openSpring : closeSpring));
+      apply(spring(isOpen ? openSpring : closeSpring), isOpen ? 0.04 : 0.02);
     };
 
-    if (reduced) return;
+    controllers.set(slug, {
+      slug,
+      folder,
+      wrap,
+      flap,
+      items,
+      offset,
+      gaps,
+      closedPct,
+      closedRotate,
+      restack,
+      deactivate() {
+        expanded = false;
+        focused = null;
+      },
+    });
 
+    /* Every hover handler stands down while the stage owns the cards — the
+       cleanup half too, or leaving the folder mid-stage would fold everything
+       back into it. */
     hover(folder, () => {
+      if (stage) return;
       setOpen(true);
-      return () => setOpen(false);
+      return () => {
+        if (stage) return;
+        setOpen(false);
+      };
     });
 
     /* Whichever card was singled out last keeps the top of the stack until
@@ -351,18 +374,220 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
        its neighbours halfway through settling. */
     items.forEach((item, i) =>
       hover(item, () => {
+        if (stage) return;
         focused = i;
         restack();
-        apply(focusSpring);
+        apply(spring(focusSpring));
         return () => {
+          if (stage) return;
           if (focused === i) focused = null;
-          apply(focusSpring);
+          apply(spring(focusSpring));
         };
       }),
     );
 
     // Keyboard parity for the linked variant.
-    folder.addEventListener("focusin", () => setOpen(true));
-    folder.addEventListener("focusout", () => setOpen(false));
+    folder.addEventListener("focusin", () => !stage && setOpen(true));
+    folder.addEventListener("focusout", () => !stage && setOpen(false));
+
+    folder.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (stage?.c === controllers.get(slug) && !stage.closing) {
+        // On stage, clicking a side card steps to it; anywhere else closes.
+        const hit = (event.target as HTMLElement).closest<HTMLElement>("[data-folder-item]");
+        if (hit) go(items.indexOf(hit));
+        else requestClose();
+        return;
+      }
+      if (!stage) openStage(slug, true);
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* Stage: the folder's own cards fly out and become the carousel        */
+  /* ------------------------------------------------------------------ */
+
+  const overlay = document.createElement("div");
+  overlay.className = "fstage";
+  overlay.innerHTML = `
+    <header class="fstage-bar">
+      <div>
+        <p class="fstage-title"></p>
+        <p class="fstage-meta"></p>
+      </div>
+      <button class="fstage-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M4 4l8 8M12 4l-8 8" stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </header>
+    <p class="fstage-hint">Use ← → to move</p>`;
+  document.body.appendChild(overlay);
+  const overlayTitle = overlay.querySelector<HTMLElement>(".fstage-title")!;
+  const overlayMeta = overlay.querySelector<HTMLElement>(".fstage-meta")!;
+
+  /* Where a card sits with no transform applied — offsetLeft/Top ignore
+     transforms, so this is stable however far the fan has moved things. */
+  const baseCenter = (c: Controller, i: number) => {
+    const rect = c.wrap.getBoundingClientRect();
+    const item = c.items[i];
+    return {
+      x: rect.left + item.offsetLeft + item.offsetWidth / 2,
+      y: rect.top + item.offsetTop + item.offsetHeight / 2,
+    };
+  };
+
+  /* Lay the cards out around the active one: centre card full size and
+     straight, neighbours at 60% with their tilt back, everything on one
+     vertical centreline. All in px — the stage is viewport-space. */
+  const render = (opts: object, stagger = 0) => {
+    if (!stage) return;
+    const { c, active, base } = stage;
+    const unit = Math.min(innerWidth * 0.46, innerHeight * 0.52);
+    const reach = unit * (0.5 + GAP + SIDE / 2);
+    c.items.forEach((item, i) => {
+      const d = i - active;
+      const x =
+        d === 0
+          ? innerWidth / 2
+          : innerWidth / 2 +
+            Math.sign(d) * (reach + (Math.abs(d) - 1) * unit * (SIDE + GAP));
+      const size = (d === 0 ? 1 : SIDE) * unit;
+      item.style.zIndex = String(30 + c.items.length - Math.abs(d));
+      animate(
+        item,
+        {
+          x: x - base[i].x,
+          y: innerHeight / 2 - base[i].y,
+          scale: size / Math.max(item.offsetWidth, item.offsetHeight),
+          rotate: d === 0 ? 0 : tilt(i),
+          opacity: Math.max(0.3, 1 - Math.abs(d) * 0.16),
+        },
+        { ...opts, delay: Math.abs(d) * stagger },
+      );
+    });
+  };
+
+  const openStage = (slug: string, push: boolean) => {
+    const c = controllers.get(slug);
+    if (!c || stage) return;
+    stage = { slug, c, active: 0, base: [], closing: false };
+
+    if (push) history.pushState({ folder: slug }, "", `/${slug}`);
+    overlayTitle.textContent = c.folder.dataset.title ?? "";
+    overlayMeta.textContent = c.folder.dataset.meta ?? "";
+    overlay.classList.add("is-open");
+    document.documentElement.style.overflow = "hidden";
+    c.folder.classList.add("is-stage");
+
+    /* Hand each card from the %-based hover system to the px-based stage at
+       exactly its current pose: the computed matrix is that pose, whatever
+       hover state the click interrupted. Same visual, new units — so the
+       springs launch from where the cards actually are. */
+    c.items.forEach((item, i) => {
+      stage!.base[i] = baseCenter(c, i);
+      const m = new DOMMatrix(getComputedStyle(item).transform);
+      animate(
+        item,
+        {
+          x: m.e,
+          y: m.f,
+          scale: Math.hypot(m.a, m.b),
+          rotate: (Math.atan2(m.b, m.a) * 180) / Math.PI,
+        },
+        instant,
+      );
+    });
+
+    // The flap flings right out of the way and vanishes; the cards pour out.
+    animate(c.flap, { rotateX: -80, opacity: 0 }, spring(flingSpring));
+    render(spring(stageSpring), 0.05);
+  };
+
+  const closeStage = async () => {
+    if (!stage || stage.closing) return;
+    stage.closing = true;
+    const { c } = stage;
+
+    overlay.classList.remove("is-open");
+    document.documentElement.style.overflow = "";
+
+    /* The reverse flight: cards fan back into the still-open folder first,
+       centre card leading, then the flap swings up into view and shuts over
+       them. Sequencing rather than overlapping is the point — the shut only
+       reads if the cards are already home. */
+    const w = c.wrap.offsetWidth;
+    await Promise.all(
+      c.items.map(
+        (item, i) =>
+          animate(
+            item,
+            {
+              x: ((c.offset(i) * 6) / 100) * w,
+              y: 0,
+              rotate: c.closedRotate(i),
+              scale: 1,
+              opacity: 1,
+            },
+            { ...spring(homeSpring), delay: Math.abs(c.offset(i)) * 0.03 },
+          ).finished,
+      ),
+    );
+
+    await animate(c.flap, { rotateX: 0, opacity: 1 }, spring(shutSpring)).finished;
+
+    // Hand the cards back to the hover system in its own units — same pose.
+    c.deactivate();
+    c.items.forEach((item, i) => animate(item, c.closedPct(i), instant));
+    c.restack();
+    c.folder.classList.remove("is-stage");
+    stage = null;
+  };
+
+  const go = (next: number) => {
+    if (!stage || stage.closing) return;
+    const clamped = Math.max(0, Math.min(stage.c.items.length - 1, next));
+    if (clamped === stage.active) return;
+    stage.active = clamped;
+    render(spring(stageSpring));
+  };
+
+  /* Closing goes through history when we put an entry there, so the back
+     button and the close button are the same path — popstate does the work. */
+  const requestClose = () => {
+    if (history.state?.folder) history.back();
+    else closeStage();
+  };
+
+  overlay.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    if (target === overlay || target.closest(".fstage-close")) requestClose();
+  });
+
+  addEventListener("keydown", (event) => {
+    if (!stage || stage.closing) return;
+    if (event.key === "ArrowRight") go(stage.active + 1);
+    else if (event.key === "ArrowLeft") go(stage.active - 1);
+    else if (event.key === "Escape") requestClose();
+    else return;
+    event.preventDefault();
+  });
+
+  addEventListener("popstate", () => {
+    const slug = location.pathname.replace(/^\/+|\/+$/g, "");
+    if (stage) {
+      if (slug !== stage.slug) closeStage();
+    } else if (controllers.has(slug)) {
+      openStage(slug, false);
+    }
+  });
+
+  /* Stage geometry is viewport-derived, so a resize invalidates both the base
+     centres and the targets. Snap rather than animate — a resize is not a
+     state change the user is watching. */
+  addEventListener("resize", () => {
+    if (!stage || stage.closing) return;
+    stage.base = stage.c.items.map((_, i) => baseCenter(stage.c, i));
+    render(instant);
   });
 </script>

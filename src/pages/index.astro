@@ -2,68 +2,14 @@
 import Layout from "../layouts/Layout.astro";
 import About from "../components/About.astro";
 import Folder from "../components/Folder.astro";
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import { collections } from "../data/collections";
 ---
 
 <Layout>
   <main class="space-y-16 py-8">
     <About />
     <div class="grid grid-cols-2 gap-6">
-      <Folder
-        title="Travel"
-        meta="14 places"
-        href="/travel"
-        items={[
-          "https://picsum.photos/seed/kashmir/600/800",
-          "https://picsum.photos/seed/london/800/600",
-          "https://picsum.photos/seed/paris/700/700",
-          "https://picsum.photos/seed/tokyo/900/600",
-          "https://picsum.photos/seed/lisbon/600/800",
-        ]}
-      />
-      <Folder
-        title="Projects"
-        meta="9 things I built"
-        href="/projects"
-        items={[
-          {
-            logo: "https://pdfstudio-demo.fayaz.workers.dev/favicon.svg",
-            label: "PDF Studio",
-          },
-          {
-            logo: "https://screendrop.fayazahmed.com/favicon.ico",
-            label: "Screendrop",
-          },
-          { logo: "https://codereel.fayazahmed.com/logo.png", label: "CodeReel" },
-          { logo: "https://supersaas.dev/logo.png", label: "Supersaas" },
-        ]}
-      />
-      <Folder
-        title="Writing"
-        meta="23 posts"
-        href="/writing"
-        items={[
-          { note: "Why I stopped reaching for a framework" },
-          { note: "Shipping a side project in a weekend" },
-          { note: "The unreasonable effectiveness of boring CSS" },
-          { note: "Notes on building for the edge" },
-        ]}
-      />
-      <Folder
-        title="Bookmarks"
-        meta="A pile of tabs"
-        href="/bookmarks"
-        items={[
-          "https://picsum.photos/seed/delta/600/800",
-          "https://picsum.photos/seed/epsilon/800/600",
-          "https://picsum.photos/seed/zeta/700/700",
-          "https://picsum.photos/seed/eta/900/600",
-          "https://picsum.photos/seed/theta/600/800",
-          "https://picsum.photos/seed/iota/800/600",
-        ]}
-      />
+      {collections.map((collection) => <Folder collection={collection} />)}
     </div>
   </main>
 </Layout>
