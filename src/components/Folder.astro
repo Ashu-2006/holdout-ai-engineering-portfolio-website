@@ -1,0 +1,330 @@
+---
+import { Icon } from "astro-icon/components";
+
+/* Three kinds of thing can sit in a folder. A bare string is a photo; the rest
+   are told apart by which key they carry. `w`/`ratio`/`top` override the shape
+   the cycle would otherwise pick — sizes are % of the folder's width. */
+type Shape = { w?: number; ratio?: string; top?: number };
+type FolderItem =
+  | string
+  | ({ src: string } & Shape)
+  | ({ logo: string; label?: string } & Shape)
+  | ({ note: string } & Shape);
+
+interface Props {
+  title: string;
+  meta?: string;
+  href?: string;
+  /** Contents of the folder. Ignored when a slot is passed. */
+  items?: FolderItem[];
+  class?: string;
+}
+
+const { title, meta, href, items = [], class: className = "" } = Astro.props;
+const Tag = href ? "a" : "div";
+
+/* A stack of identically-shaped cards reads as a template. Cycling shapes and
+   hanging them at different heights makes it look like real things stuffed into
+   a folder. Photos vary the most; logos want to stay square, paper stays
+   portrait, so those cycles only vary width and how far they're pushed in. */
+const SHAPES = {
+  photo: [
+    { w: 34, ratio: "4/5", top: 5 },
+    { w: 44, ratio: "4/3", top: 9 },
+    { w: 37, ratio: "1/1", top: 4 },
+    { w: 42, ratio: "3/2", top: 10 },
+    { w: 32, ratio: "3/4", top: 6 },
+  ],
+  logo: [
+    { w: 36, ratio: "1/1", top: 6 },
+    { w: 40, ratio: "1/1", top: 10 },
+    { w: 34, ratio: "1/1", top: 4 },
+    { w: 38, ratio: "1/1", top: 12 },
+  ],
+  note: [
+    { w: 34, ratio: "3/4", top: 5 },
+    { w: 37, ratio: "3/4", top: 9 },
+    { w: 33, ratio: "3/4", top: 3 },
+    { w: 36, ratio: "3/4", top: 11 },
+  ],
+};
+
+const cards = items.map((item, i) => {
+  const value = typeof item === "string" ? { src: item } : item;
+  const kind = "logo" in value ? "logo" : "note" in value ? "note" : "photo";
+  const cycle = SHAPES[kind];
+  return { kind, ...cycle[i % cycle.length], ...value } as const;
+});
+
+// Gradients are per-instance, so the id has to be too.
+const fillId = `folder-${Math.random().toString(36).slice(2, 8)}`;
+
+/* One continuous silhouette — tab and body share an outline, joined by a wide
+   concave sweep (r=34). A tight fillet reads as a notch cut out of a card; the
+   long curve is what makes it read as a folder. viewBox matches the wrapper's
+   aspect so nothing skews. */
+const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
+  A34,34 0 0 0 214,60 L370,60 A30,30 0 0 1 400,90 L400,310
+  A30,30 0 0 1 370,340 L30,340 A30,30 0 0 1 0,310 Z`;
+---
+
+<Tag href={href} data-folder class:list={["folder group block", className]}>
+  <div class="relative aspect-20/17 w-full [perspective:1000px]">
+    <svg viewBox="0 0 400 340" class="back absolute inset-0 h-full w-full" aria-hidden="true">
+      <defs>
+        <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4f4f4"></stop>
+          <stop offset="1" stop-color="#e2e2e2"></stop>
+        </linearGradient>
+      </defs>
+      <path d={back} fill={`url(#${fillId})`}></path>
+      <path d={back} fill="none" stroke="white" stroke-opacity="0.8"></path>
+    </svg>
+
+    {/* contents — sized in % of the folder so cards keep their own shape */}
+    <div class="absolute inset-0 z-0">
+      {
+        cards.length > 0 ? (
+          cards.map((card) => (
+            <div
+              data-folder-item
+              data-w={card.w}
+              class="item absolute left-1/2"
+              style={`top:${card.top}%;width:${card.w}%;margin-left:${-card.w / 2}%;aspect-ratio:${card.ratio}`}
+            >
+              {card.kind === "photo" && (
+                <figure class="photo">
+                  <img src={card.src} alt="" loading="lazy" />
+                </figure>
+              )}
+
+              {/* A logo is already a shape — putting it on a card gives it a
+                  second, competing one. It sits in the folder as itself. */}
+              {card.kind === "logo" && (
+                <img class="logo" src={card.logo} alt={card.label ?? ""} loading="lazy" />
+              )}
+
+              {card.kind === "note" && (
+                <div class="note">
+                  <p class="note-title">{card.note}</p>
+                  <div class="note-body">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <slot />
+        )
+      }
+    </div>
+
+    {/* front flap — the only other edge, so it reads as a fold, not a card */}
+    <div
+      data-folder-flap
+      class="flap absolute inset-x-0 top-[24%] bottom-0 z-10 inset-ring inset-ring-white/60 [transform-origin:bottom_center] [box-shadow:0_-2px_6px_-1px_rgb(0_0_0/0.08)]"
+    >
+      <div class="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-medium text-neutral-800">{title}</p>
+          {meta && <p class="mt-0.5 truncate text-xs text-neutral-500">{meta}</p>}
+        </div>
+        {
+          href && (
+            <Icon name="ph:arrow-up-right-bold" class="size-4 shrink-0 text-neutral-400" />
+          )
+        }
+      </div>
+    </div>
+  </div>
+</Tag>
+
+<style>
+  .folder {
+    transition: transform 160ms var(--ease-out);
+  }
+
+  /* Three stacked shadows rather than one: a tight contact shadow to seat the
+     folder, a mid layer for form, and a wide ambient one for depth. Each is faint
+     on its own — a single shadow dark enough to read here would look like a drop
+     shadow instead of light. drop-shadow follows the folder's silhouette, which
+     box-shadow can't do around the tab. */
+  .back {
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.06))
+      drop-shadow(0 6px 12px rgb(0 0 0 / 0.06))
+      drop-shadow(0 18px 32px rgb(0 0 0 / 0.07));
+  }
+
+  /* Everything inside a card is sized in cqw — % of the card's own width — so a
+     folder rendered at 200px or 600px gets the same proportions. The query
+     container has to be this wrapper, not the card: an element can't query
+     itself. */
+  .item {
+    container-type: inline-size;
+    --pad: 3cqw;
+    --radius: 9cqw;
+    --edge: 0 0 0 1px rgb(0 0 0 / 0.05);
+    --lift: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 16px rgb(0 0 0 / 0.12);
+  }
+
+  .photo,
+  .note {
+    height: 100%;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--edge), var(--lift);
+  }
+
+  .photo {
+    padding: var(--pad);
+  }
+
+  /* Concentric corners: the inner radius is the outer minus the gap between
+     them. Matching the two makes the matte look pinched at the corners. */
+  .photo img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    border-radius: calc(var(--radius) - var(--pad));
+  }
+
+  .logo {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.12))
+      drop-shadow(0 8px 14px rgb(0 0 0 / 0.1));
+  }
+
+  .note {
+    display: flex;
+    flex-direction: column;
+    gap: 8cqw;
+    padding: 9cqw;
+  }
+
+  .note-title {
+    font-size: 10cqw;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-neutral-700);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .note-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4cqw;
+  }
+
+  .note-body span {
+    height: 2.5cqw;
+    border-radius: 999px;
+    background: var(--color-neutral-200);
+  }
+
+  .note-body span:last-child {
+    width: 66%;
+  }
+
+  /* The back panel's corners are SVG units that scale with the folder, so a fixed
+     rem radius here drifts out of sync at any size but one. Percentage radii track
+     it exactly: r=30 against a 400-wide viewBox and a 258.4-tall flap. */
+  .flap {
+    border-radius: 7.5% / 11.6%;
+    /* Frosted glass: the tint has to stay thin enough to see through, and the
+       saturation boost puts back the colour that blurring washes out. */
+    background-image: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.5),
+      rgb(255 255 255 / 0.38)
+    );
+    backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  /* Presses should feel heard, but only where there's a real pointer. */
+  @media (hover: hover) and (pointer: fine) {
+    .folder:active {
+      transform: scale(0.98);
+    }
+  }
+</style>
+
+<script>
+  import { animate, hover } from "motion";
+
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* Springy on the way out, quicker and calmer on the way back — the folder is
+     showing off when it opens and just getting out of the way when it closes. */
+  const openSpring = { type: "spring", duration: 0.55, bounce: 0.35 } as const;
+  const closeSpring = { type: "spring", duration: 0.3, bounce: 0.1 } as const;
+
+  document.querySelectorAll<HTMLElement>("[data-folder]").forEach((folder) => {
+    const flap = folder.querySelector<HTMLElement>("[data-folder-flap]")!;
+    const items = [...folder.querySelectorAll<HTMLElement>("[data-folder-item]")];
+    const mid = (items.length - 1) / 2;
+    const offset = (i: number) => i - mid;
+
+    /* Fanned out, the stack should just about span the folder. Cards are mixed
+       widths, so the track is budgeted in folder-% off the widest card, then
+       converted per card — translate percentages resolve against the element's
+       own width, so an identical offset moves a narrow card further. */
+    const gaps = Math.max(items.length - 1, 1);
+    const widthOf = (el: HTMLElement) => Number(el.dataset.w) || 36;
+    const step = (100 - Math.max(...items.map(widthOf))) / gaps;
+    const shift = (i: number, folderPct: number) =>
+      `${((offset(i) * folderPct) / widthOf(items[i])) * 100}%`;
+
+    // Centre card sits on top of the stack, the rest tuck behind it.
+    items.forEach((item, i) => {
+      item.style.zIndex = String(items.length - Math.round(Math.abs(offset(i))));
+    });
+
+    const closed = (i: number) => ({
+      x: shift(i, 6),
+      y: "0%",
+      rotate: offset(i) * (6 / gaps),
+      scale: 1,
+    });
+
+    const open = (i: number) => ({
+      x: shift(i, step),
+      y: "-24%",
+      rotate: offset(i) * (11 / gaps),
+      scale: 1,
+    });
+
+    items.forEach((item, i) => animate(item, closed(i), { duration: 0 }));
+
+    const setOpen = (isOpen: boolean) => {
+      const spring = isOpen ? openSpring : closeSpring;
+      const stagger = isOpen ? 0.04 : 0.02;
+
+      animate(flap, { rotateX: isOpen ? -30 : 0 }, spring);
+      items.forEach((item, i) =>
+        animate(item, isOpen ? open(i) : closed(i), {
+          ...spring,
+          delay: Math.abs(offset(i)) * stagger,
+        }),
+      );
+    };
+
+    if (reduced) return;
+
+    hover(folder, () => {
+      setOpen(true);
+      return () => setOpen(false);
+    });
+
+    // Keyboard parity for the linked variant.
+    folder.addEventListener("focusin", () => setOpen(true));
+    folder.addEventListener("focusout", () => setOpen(false));
+  });
+</script>
