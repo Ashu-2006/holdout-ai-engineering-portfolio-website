@@ -15,7 +15,7 @@ const cards = normalise(collection.items);
 // Gradients are per-instance, so the id has to be too.
 const fillId = `folder-${slug}`;
 
-/* One continuous silhouette — tab and body share an outline, joined by a wide
+/* One continuous silhouette - tab and body share an outline, joined by a wide
    concave sweep (r=34). A tight fillet reads as a notch cut out of a card; the
    long curve is what makes it read as a folder. viewBox matches the wrapper's
    aspect so nothing skews. */
@@ -43,7 +43,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
       <path d={back} fill="none" stroke="white" stroke-opacity="0.8"></path>
     </svg>
 
-    {/* contents — sized in % of the folder so cards keep their own shape */}
+    {/* contents - sized in % of the folder so cards keep their own shape */}
     <div class="absolute inset-0 z-0">
       {
         cards.map((card, i) => (
@@ -60,7 +60,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
       }
     </div>
 
-    {/* front flap — the only other edge, so it reads as a fold, not a card */}
+    {/* front flap - the only other edge, so it reads as a fold, not a card */}
     <div
       data-folder-flap
       class="flap absolute inset-x-0 top-[24%] bottom-0 z-10 inset-ring inset-ring-white/60 [transform-origin:bottom_center] [box-shadow:0_-2px_6px_-1px_rgb(0_0_0/0.08)]"
@@ -84,7 +84,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
   /* Three stacked shadows rather than one: a tight contact shadow to seat the
      folder, a mid layer for form, and a wide ambient one for depth. Each is faint
-     on its own — a single shadow dark enough to read here would look like a drop
+     on its own - a single shadow dark enough to read here would look like a drop
      shadow instead of light. drop-shadow follows the folder's silhouette, which
      box-shadow can't do around the tab. */
   .back {
@@ -116,7 +116,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   }
 </style>
 
-{/* Stage chrome is created by the script, so these can't be scoped styles —
+{/* Stage chrome is created by the script, so these can't be scoped styles -
     Astro's scope attribute never lands on JS-built elements. */}
 <style is:global>
   .fstage {
@@ -217,6 +217,14 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   .folder.is-stage .note {
     overflow-y: auto;
   }
+
+  /* --radius is a fixed cqw proportion of the card's own width, which is right
+     at folder scale (a few px) but reads as over-rounded once the same card is
+     300–800px on stage - corner radius has to shrink relative to size to keep
+     looking like a corner rather than a stadium shape. */
+  .folder.is-stage .frame {
+    --radius: 3.5cqw;
+  }
 </style>
 
 <script>
@@ -243,7 +251,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   const GAP = 0.08; // gap between staged cards, in units of card size
 
   /* Hashed off the index rather than Math.random, so a card is tilted the same
-     way every visit — a photo that lands at a different angle each time reads
+     way every visit - a photo that lands at a different angle each time reads
      as a glitch, not as character. */
   const tilt = (i: number) => {
     const n = Math.sin((i + 1) * 127.1) * 43758.5453;
@@ -288,7 +296,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
     /* Fanned out, the stack should just about span the folder. Cards are mixed
        widths, so the track is budgeted in folder-% off the widest card, then
-       converted per card — translate percentages resolve against the element's
+       converted per card - translate percentages resolve against the element's
        own width, so an identical offset moves a narrow card further. */
     const gaps = Math.max(items.length - 1, 1);
     const widthOf = (el: HTMLElement) => Number(el.dataset.w) || 36;
@@ -365,7 +373,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
       },
     });
 
-    /* Every hover handler stands down while the stage owns the cards — the
+    /* Every hover handler stands down while the stage owns the cards - the
        cleanup half too, or leaving the folder mid-stage would fold everything
        back into it. */
     hover(folder, () => {
@@ -436,7 +444,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
   const isNote = (c: Controller, i: number) => c.items[i].dataset.kind === "note";
 
-  /* Where a card sits with no transform applied — offsetLeft/Top ignore
+  /* Where a card sits with no transform applied - offsetLeft/Top ignore
      transforms, so this is stable however far the fan has moved things. */
   const baseCenter = (c: Controller, i: number) => {
     const rect = c.wrap.getBoundingClientRect();
@@ -449,13 +457,13 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
   /* Lay the cards out around the active one: centre card full size and
      straight, neighbours at 60% with their tilt back, everything on one
-     vertical centreline. All in px — the stage is viewport-space. */
+     vertical centreline. All in px - the stage is viewport-space. */
   const render = (opts: object, stagger = 0) => {
     if (!stage) return;
     const { c, active, base } = stage;
     const unit = Math.min(innerWidth * 0.46, innerHeight * 0.52);
 
-    /* An article at centre gets a bigger budget than a picture — it's being
+    /* An article at centre gets a bigger budget than a picture - it's being
        read, not looked at. Same card, just allowed more of the screen. */
     const fit = (i: number) => {
       const item = c.items[i];
@@ -509,7 +517,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
     /* Hand each card from the %-based hover system to the px-based stage at
        exactly its current pose: the computed matrix is that pose, whatever
-       hover state the click interrupted. Same visual, new units — so the
+       hover state the click interrupted. Same visual, new units - so the
        springs launch from where the cards actually are. */
     c.items.forEach((item, i) => {
       stage!.base[i] = baseCenter(c, i);
@@ -541,7 +549,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
     /* The reverse flight: cards fan back into the still-open folder first,
        centre card leading, then the flap swings up into view and shuts over
-       them. Sequencing rather than overlapping is the point — the shut only
+       them. Sequencing rather than overlapping is the point - the shut only
        reads if the cards are already home. */
     const w = c.wrap.offsetWidth;
     await Promise.all(
@@ -563,7 +571,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
 
     await animate(c.flap, { rotateX: 0, opacity: 1 }, spring(shutSpring)).finished;
 
-    /* Hand the cards back to the hover system in its own units — same pose.
+    /* Hand the cards back to the hover system in its own units - same pose.
        Deliberately NOT restacking: the card you were just looking at keeps the
        top of the pile, the way a real folder remembers what you last pulled
        out. Reordering here was a visible z-snap the instant they landed. */
@@ -582,7 +590,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   };
 
   /* Closing goes through history when we put an entry there, so the back
-     button and the close button are the same path — popstate does the work. */
+     button and the close button are the same path - popstate does the work. */
   const requestClose = () => {
     if (history.state?.folder) history.back();
     else closeStage();
@@ -612,7 +620,7 @@ const back = `M0,26 A26,26 0 0 1 26,0 L154,0 A26,26 0 0 1 180,26
   });
 
   /* Stage geometry is viewport-derived, so a resize invalidates both the base
-     centres and the targets. Snap rather than animate — a resize is not a
+     centres and the targets. Snap rather than animate - a resize is not a
      state change the user is watching. */
   addEventListener("resize", () => {
     if (!stage || stage.closing) return;

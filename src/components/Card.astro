@@ -8,20 +8,20 @@ interface Props {
 const { card } = Astro.props;
 ---
 
-{/* Fills whatever frame it's given — a shaped slot in a folder, or a slide in
-    the carousel — so the same object appears in both places. The wrapper exists
+{/* Fills whatever frame it's given - a shaped slot in a folder, or a slide in
+    the carousel - so the same object appears in both places. The wrapper exists
     to be the query container: the elements below size themselves in cqw against
     it, and an element can't query itself. */}
 <div class="frame">
   {
     card.kind === "photo" && (
-      <figure class="photo">
+      <figure class="photo shadow">
         <img src={card.src} alt="" loading="lazy" />
       </figure>
     )
   }
 
-  {/* A logo is already a shape — putting it on a card gives it a second,
+  {/* A logo is already a shape - putting it on a card gives it a second,
       competing one. It sits as itself. */}
   {
     card.kind === "logo" && (
@@ -29,12 +29,12 @@ const { card } = Astro.props;
     )
   }
 
-  {/* The whole article is always there, in miniature — cqw type means it's a
+  {/* The whole article is always there, in miniature - cqw type means it's a
       real tiny manuscript in the folder and readable prose once the stage
       scales the very same card up. No stand-ins, no content swapping. */}
   {
     card.kind === "note" && (
-      <div class="note">
+      <div class="note shadow">
         <p class="note-title">{card.note}</p>
         {card.body?.map((p) => <p class="note-p">{p}</p>)}
       </div>
@@ -43,7 +43,7 @@ const { card } = Astro.props;
 </div>
 
 <style>
-  /* Everything inside is sized in cqw — % of the card's own width — so a card
+  /* Everything inside is sized in cqw - % of the card's own width - so a card
      rendered at 90px in a folder and at 350px in the carousel is proportionally
      identical rather than one having chunky corners and hairline text. */
   .frame {
@@ -61,13 +61,14 @@ const { card } = Astro.props;
   .logo {
     height: 100%;
     width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .photo,
   .note {
     background: white;
     border-radius: var(--radius);
-    box-shadow: var(--edge), var(--lift);
   }
 
   .photo {

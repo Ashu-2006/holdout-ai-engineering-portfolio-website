@@ -69,12 +69,12 @@ const cards = normalise(collection.items);
   /* Every slide occupies the same grid cell, so they stack dead centre and the
      only thing separating them is the transform JS applies. */
   /* Each slide keeps its own card's aspect-ratio (set inline per card) and is
-     capped to fit within a shared square budget on whichever axis is tighter —
+     capped to fit within a shared square budget on whichever axis is tighter -
      max-width/max-height plus width/height:auto is what lets a browser size a
      ratio-boxed element to "fit inside, don't crop" rather than "fill and
      crop." A flat width=height square here was the earlier fix for vertical
-     centering, but it forced every card — including portrait note cards with
-     nothing to crop — into a literal square. */
+     centering, but it forced every card - including portrait note cards with
+     nothing to crop - into a literal square. */
   .slide {
     grid-area: 1 / 1;
     border: 0;
@@ -103,6 +103,12 @@ const cards = normalise(collection.items);
   /* On the static page too, a staged note is the reading surface. */
   .slide :global(.note) {
     overflow-y: auto;
+  }
+
+  /* Same correction as the in-page stage: every slide here renders at full
+     stage size, so the folder-scale --radius would read as over-rounded. */
+  .slide :global(.frame) {
+    --radius: 3.5cqw;
   }
 
   .bar {
@@ -157,7 +163,7 @@ const cards = normalise(collection.items);
 
   /* Side cards sit at 60% so the centre one is clearly the subject, with a gap
      of 8% of a card between neighbours. Together these put the third card out
-     at the viewport edge, half in frame — the row reads as continuing past
+     at the viewport edge, half in frame - the row reads as continuing past
      what you can see rather than ending. */
   const SIDE = 0.6;
   const GAP = 0.08;
@@ -171,7 +177,7 @@ const cards = normalise(collection.items);
     let active = 0;
 
     /* Hashed off the index rather than Math.random, so a card is tilted the same
-       way every visit — a photo that lands at a different angle each reload
+       way every visit - a photo that lands at a different angle each reload
        reads as a glitch, not as character. */
     const tilt = (i: number) => {
       const noise = Math.sin((i + 1) * 127.1) * 43758.5453;
@@ -194,10 +200,10 @@ const cards = normalise(collection.items);
     };
 
     const render = (options: object) => {
-      // Cards no longer share one size — spacing is pitched off whichever is centred.
+      // Cards no longer share one size - spacing is pitched off whichever is centred.
       const unit = slides[active]?.offsetWidth ?? 0;
       slides.forEach((slide, i) => {
-        // z-index can't animate, so it's set outright — nearest card on top.
+        // z-index can't animate, so it's set outright - nearest card on top.
         slide.style.zIndex = String(slides.length - Math.abs(i - active));
         animate(slide, positionOf(i, unit), options);
       });
@@ -223,7 +229,7 @@ const cards = normalise(collection.items);
     });
 
     /* Card size is derived from viewport units, so the spacing it feeds has to
-       be recomputed when that changes. Snap rather than animate — a resize is
+       be recomputed when that changes. Snap rather than animate - a resize is
        not a state change the user is watching. */
     addEventListener("resize", () => render({ duration: 0 }));
   }
