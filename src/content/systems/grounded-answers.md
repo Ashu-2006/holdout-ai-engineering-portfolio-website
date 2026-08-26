@@ -1,0 +1,65 @@
+---
+title: Grounded answer service
+outcome: Cut hallucinated citations from 18% to 3% on a 50,000-document corpus
+relevanceNote: >-
+  Built the retrieval and evaluation layer end to end. Maps directly to teams
+  shipping grounded answer products where citation accuracy is the constraint.
+liveDemo: https://example.dev/demo
+featured: true
+order: 1
+metrics:
+  - value: "94%"
+    label: precision@5
+    context: 50k document corpus
+    baseline: "71% dense-only"
+  - value: "380"
+    unit: ms
+    label: p95 latency
+    context: including rerank
+    baseline: 1.4s
+  - value: "3%"
+    label: hallucination rate
+    baseline: "18%"
+stack: [Qdrant, BM25, Cohere rerank, vLLM, Ragas, FastAPI]
+artifacts:
+  - kind: repo
+    url: https://github.com/example/grounded-answers
+  - kind: demo
+    url: https://example.dev/demo
+decisions:
+  - decision: Hybrid BM25 + dense retrieval, not dense alone
+    alternatives: [Dense-only with bge-large, BM25-only]
+    rationale: Dense retrieval missed exact-match part numbers and IDs entirely
+    tradeoff: Added 40ms of latency and a second index to keep in sync
+    secondOrder:
+      - Recall@20 rose from 71% to 89%
+      - The reranker had materially better candidates to work with
+  - decision: Reranked the top 50 rather than widening the embedding window
+    alternatives: [Larger embedding model, Wider top-k with no rerank]
+    rationale: A cross-encoder on 50 candidates beat a bigger bi-encoder on 200
+    tradeoff: One more network hop, and a vendor dependency in the hot path
+    secondOrder:
+      - Precision@5 rose 12 points
+      - Added a cache layer to keep p95 under the 400ms budget
+evals:
+  - method: LLM-as-judge with human spot check on 15%
+    datasetSize: 1200
+    metric: faithfulness
+    score: "0.94"
+    baseline: "0.71 (dense-only)"
+    failureNotes: >-
+      Degrades sharply on multi-hop questions spanning three or more documents.
+      Tables inside scanned PDFs still parse badly and need a real OCR stage.
+limitations:
+  - Multi-hop questions across 3+ documents degrade sharply
+  - Scanned-PDF tables parse badly; needs a dedicated OCR stage
+  - The reranker adds 40ms and a second index to maintain
+talkingPoint: >-
+  Why the reranker mattered more than the embedding model, and the week I spent
+  convinced the retriever was broken when the chunker was.
+---
+
+The corpus was technical documentation where a wrong citation is worse than no
+answer. Dense retrieval alone looked fine on aggregate scores while failing on
+exactly the queries that mattered most: part numbers, error codes, version
+strings.

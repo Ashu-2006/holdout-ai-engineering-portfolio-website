@@ -91,13 +91,31 @@
   /* ---- radius: inner = outer minus padding. One subtraction. ---- */
   --radius-chip: 0.375rem;
 
-  /* ---- elevation: three faint layers, never one dark one --- */
-  --shadow-seat:
-    0 1px 2px rgb(0 0 0 / 0.06), 0 6px 12px rgb(0 0 0 / 0.06),
-    0 18px 32px rgb(0 0 0 / 0.07);
-  --shadow-lift:
-    0 2px 4px rgb(0 0 0 / 0.06), 0 10px 20px rgb(0 0 0 / 0.07),
-    0 28px 48px rgb(0 0 0 / 0.08);
+  /* ---- separation: air first, hairline second, never a shadow ----
+     There is no elevation scale here on purpose. Elevation is contrast
+     between adjacent surfaces plus a hairline, and shadow is what you
+     reach for when those two are not enough. On a reading page they
+     are always enough, so the whole shadow layer is gone and this
+     spacing scale does the work instead.
+
+     The ratio is roughly 2x per step, except the jump to --space-section,
+     which is deliberately ~2.5x the step below it. Sections have to
+     separate by air alone, with no rule to help, so the gap has to be
+     large enough that it cannot read as an accident. */
+  --space-tight: 0.375rem; /*  6px  label to its value */
+  --space-row: 0.75rem; /* 12px  inside one row */
+  --space-group: 1.5rem; /* 24px  between related items */
+  --space-block: 3rem; /* 48px  between blocks in a section */
+  --space-section: 5.5rem; /* 88px  between top-level sections */
+
+  /* Measure. Prose stops before the eye loses the line start, which is
+     what makes the F-pattern's vertical scan work at all. */
+  --measure-prose: 62ch;
+  --measure-note: 46ch;
+
+  /* The one structural line. 1.5:1 to 2:1 against the surface reads as
+     "there but not shouting"; anything stronger competes with text. */
+  --hairline: 1px solid var(--color-line-2);
 }
 
 /* ---- dark mode: redefine the same tokens ------------------ */
@@ -117,8 +135,9 @@
   --color-measured: #4ade80;
   --color-caution: #fbbf24;
 
-  --shadow-seat: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 20px rgb(0 0 0 / 0.4);
-  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.5), 0 16px 36px rgb(0 0 0 / 0.45);
+  /* Dark mode needs no shadow counterpart. In dark, elevation reads as
+     a lighter surface, not a darker cast, so --color-surface stepping
+     up from --color-ground is the entire elevation story here. */
 }
 
 /* ============================================================
@@ -127,29 +146,76 @@
    ============================================================ */
 
 @layer components {
-  /* Card: seated with the three-shadow stack plus a hairline. */
+  /*
+   * .card is not a box. It groups content by air.
+   *
+   * No background, no border, no shadow. Two things that were previously
+   * a bordered rectangle now separate because there is 48px between them
+   * and nothing else in that 48px. Anything that still needs a visible
+   * boundary asks for it explicitly with .ruled or .well, and having to
+   * ask is the point: it keeps boundaries rare enough to mean something.
+   */
   .card {
-    background-color: var(--color-surface);
-    border-radius: var(--radius-card);
-    box-shadow:
-      var(--shadow-seat),
-      inset 0 0 0 1px var(--color-line-2);
-    transition:
-      transform var(--motion-hover),
-      box-shadow var(--motion-hover);
+    display: flow-root;
   }
 
-  /* Interactive variant. Press feedback only where a real pointer exists. */
+  /*
+   * Hover with no lift available. A shadow-based card announces itself
+   * by rising; this one announces itself by the title sharpening and
+   * the row picking up the faintest ground tint. Both are colour, so
+   * both run on the compositor and neither moves layout.
+   */
+  .card-interactive {
+    border-radius: var(--radius-card);
+    transition: background-color var(--motion-hover);
+  }
   @media (hover: hover) and (pointer: fine) {
     .card-interactive:hover {
-      transform: translateY(-3px);
-      box-shadow:
-        var(--shadow-lift),
-        inset 0 0 0 1px var(--color-line-2);
+      background-color: var(--color-sunken);
     }
   }
+  /* Press feedback stays, scaled well under the 5% overshoot ceiling. */
   .card-interactive:active {
-    transform: scale(0.985);
+    transform: scale(0.994);
+  }
+
+  /*
+   * The escape hatches, deliberately plain.
+   *
+   * .ruled draws one hairline between siblings and never around them.
+   * A box needs four borders and earns none of them on a reading page;
+   * a single rule between two rows carries the same information.
+   */
+  .ruled > * + * {
+    border-top: var(--hairline);
+    padding-top: var(--space-group);
+    margin-top: var(--space-group);
+  }
+
+  /*
+   * .well is the one place a surface change is allowed: content that is
+   * genuinely a different tier, like a failure note or a pulled quote.
+   * Sunken, not raised, because nothing on this page floats.
+   */
+  .well {
+    background-color: var(--color-sunken);
+    border-radius: var(--radius-card);
+    padding: var(--space-group);
+  }
+
+  /* Section rhythm. This is the primary separator on the page, so it
+     lives in one place and is not re-declared per section. */
+  .spine > * + * {
+    margin-top: var(--space-section);
+  }
+
+  .prose-measure {
+    max-width: var(--measure-prose);
+    text-wrap: pretty;
+  }
+  .note-measure {
+    max-width: var(--measure-note);
+    text-wrap: pretty;
   }
 
   /* Frosted glass, the base template's signature treatment. */
@@ -227,7 +293,9 @@
     border-radius: var(--radius-well);
     background-color: var(--color-ink);
     color: var(--color-ground);
-    box-shadow: var(--shadow-seat);
+    /* Inverted fill against the page ground is already the strongest
+       contrast on the site, so the skip link needs no shadow to read as
+       above the content. */
   }
 }
 

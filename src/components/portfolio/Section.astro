@@ -1,15 +1,52 @@
 ---
+/**
+ * A section is a label, an optional note, and content.
+ *
+ * There is no container, no border, no fill. What separates one section
+ * from the next is --space-section, applied by the .spine class on the
+ * parent, and nothing else. That is the whole reason the label can stay
+ * this quiet: it is not competing with a box for the reader's attention,
+ * it is just the first line after a large gap.
+ */
 interface Props {
   id: string;
   title: string;
   note?: string;
+  /** Which reading tier this belongs to. Drives the density control. */
+  tier?: "filter" | "hook" | "depth";
 }
-const { id, title, note } = Astro.props;
+const { id, title, note, tier } = Astro.props;
 ---
-<section id={id} class="scroll-mt-8">
-  <div class="mb-4">
-    <h2 class="text-[13px] font-medium tracking-wide text-ink">{title}</h2>
-    {note && <p class="mt-1 max-w-md text-[12px] leading-snug text-ink-4">{note}</p>}
+
+<section id={id} class="section scroll-mt-16" data-tier={tier}>
+  <div class="section-head">
+    <h2 class="section-title">{title}</h2>
+    {note && <p class="section-note note-measure">{note}</p>}
   </div>
   <slot />
 </section>
+
+<style>
+  /* The label is deliberately subordinate to the content under it.
+     Uppercase tracking would shout; a small medium-weight line at full
+     ink contrast reads as a heading without needing size. */
+  .section-title {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--color-ink);
+  }
+
+  .section-note {
+    margin-top: var(--space-tight);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-ink-4);
+  }
+
+  /* Heading to content. Large enough that the label reads as belonging
+     to what follows rather than floating between two sections. */
+  .section-head {
+    margin-bottom: var(--space-group);
+  }
+</style>

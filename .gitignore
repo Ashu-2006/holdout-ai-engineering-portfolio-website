@@ -22,3 +22,12 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Playwright MCP scratch output
+.playwright-mcp/
+
+# Reference material, not part of the template. "Portfolio Website" is a
+# nested git repo (the Dhairya source site) that we mine for demo content;
+# the extracted content is committed under src/content/ instead.
+docs/Portfolio Website/
+docs/__MACOSX/

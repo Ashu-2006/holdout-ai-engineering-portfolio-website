@@ -6,7 +6,7 @@ const artifacts = profiles.filter((p) => p.kind === "artifact");
 const ratings = profiles.filter((p) => p.kind === "rating");
 ---
 <div class="reveal space-y-4">
-  <ul class="grid gap-3 sm:grid-cols-3">
+  <ul class="grid gap-(--space-row) sm:grid-cols-3">
     {artifacts.map((p) => (
       <li>
         <a href={p.url} class="group card card-interactive block p-4">

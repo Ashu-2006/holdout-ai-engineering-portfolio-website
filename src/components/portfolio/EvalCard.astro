@@ -19,13 +19,13 @@ const delta = scorePct - basePct;
 /** The baseline string carries its own label, e.g. "0.71 (dense-only)". */
 const baselineNote = result.baseline.replace(/^[^\s(]+\s*/, "").replace(/[()]/g, "");
 ---
-<div class="card reveal overflow-hidden">
-  <div class="flex items-baseline justify-between gap-4 border-b border-line p-5">
+<div class="reveal">
+  <div class="flex items-baseline justify-between gap-4 pb-(--space-row)">
     <h3 class="text-[13px] font-medium text-ink">{result.metric}</h3>
     <p class="text-[11px] text-ink-4">{result.method}</p>
   </div>
 
-  <div class="space-y-4 p-5">
+  <div class="space-y-(--space-group) pt-(--space-group)">
     <div>
       <div class="mb-2 flex items-baseline justify-between">
         <span class="text-[13px]">measured</span>
@@ -58,7 +58,7 @@ const baselineNote = result.baseline.replace(/^[^\s(]+\s*/, "").replace(/[()]/g,
     </dl>
   </div>
 
-  <div class="flex gap-3 border-t border-line bg-sunken p-5">
+  <div class="well mt-(--space-group) flex gap-3">
     <p class="shrink-0 pt-0.5 text-[11px] text-caution">where it fails</p>
     <p class="text-[13px] leading-relaxed">{result.failureNotes}</p>
   </div>

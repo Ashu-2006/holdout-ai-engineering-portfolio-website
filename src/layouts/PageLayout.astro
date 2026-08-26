@@ -1,0 +1,48 @@
+---
+import "../styles/global.css";
+import { site } from "../config/site";
+import Dock from "../components/portfolio/Dock.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Sections the dock links to. Omit for pages without in-page nav. */
+  nav?: { id: string; label: string }[];
+}
+
+const {
+  title = `${site.name} — ${site.role}`,
+  description = `${site.role}. I build ${site.builds}.`,
+  nav,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="generator" content={Astro.generator} />
+    {/* Set the theme before first paint so there is no flash. */}
+    <script is:inline>
+      try {
+        const t = localStorage.getItem("theme");
+        if (t === "dark") document.documentElement.dataset.theme = "dark";
+      } catch {}
+    </script>
+  </head>
+
+  <body class="bg-ground text-ink-2 font-sans antialiased">
+    <a href="#main" class="skip-link text-sm">Skip to content</a>
+    <main id="main" class="mx-auto max-w-2xl px-5 pt-16 pb-32 sm:px-6">
+      <slot />
+    </main>
+    <Dock nav={nav} />
+  </body>
+</html>

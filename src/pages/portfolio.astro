@@ -1,0 +1,110 @@
+---
+import { getCollection } from "astro:content";
+import PageLayout from "../layouts/PageLayout.astro";
+import Identity from "../components/portfolio/Identity.astro";
+import ProofRow from "../components/portfolio/ProofRow.astro";
+import MetricStrip from "../components/portfolio/MetricStrip.astro";
+import StackGroups from "../components/portfolio/StackGroups.astro";
+import SystemCard from "../components/portfolio/SystemCard.astro";
+import RoleTimeline from "../components/portfolio/RoleTimeline.astro";
+import LabGrid from "../components/portfolio/LabGrid.astro";
+import PostList from "../components/portfolio/PostList.astro";
+import RecordList from "../components/portfolio/RecordList.astro";
+import ProfileLinks from "../components/portfolio/ProfileLinks.astro";
+import Section from "../components/portfolio/Section.astro";
+import Toast from "../components/portfolio/Toast.astro";
+import { site } from "../config/site";
+
+const byOrder = (a: { data: { order: number } }, b: { data: { order: number } }) =>
+  a.data.order - b.data.order;
+
+const systems = (await getCollection("systems", ({ data }) => !data.draft)).sort(byOrder);
+const roles = (await getCollection("roles")).sort(byOrder);
+const lab = (await getCollection("lab")).sort(byOrder);
+
+/* Live posts newest-first, then drafts: a visible queue beats a blank shelf. */
+const posts = (await getCollection("posts")).sort((a, b) => {
+  if (a.data.status !== b.data.status) return a.data.status === "live" ? -1 : 1;
+  return (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0);
+});
+
+const featured = systems.find((s) => s.data.featured) ?? systems[0];
+const others = systems.filter((s) => s.id !== featured?.id);
+
+/* One featured system, enforced. Research: a grid makes the reader choose;
+   a single feature makes the choice for them. */
+const featuredCount = systems.filter((s) => s.data.featured).length;
+if (featuredCount > 1) {
+  throw new Error(
+    `Expected at most one featured system, found ${featuredCount}. ` +
+      `Set featured: false on all but one file in src/content/systems/.`,
+  );
+}
+
+const nav = [
+  { id: "work", label: "Work" },
+  { id: "lab", label: "Lab" },
+  { id: "writing", label: "Writing" },
+];
+---
+
+<PageLayout nav={nav}>
+  {/* Tier 1, in scan order: who, then recognition, then measurement.
+      A recruiter pattern-matches a company name faster than they parse a
+      metric, so the proof row sits above the numbers. */}
+  <div data-tier="filter">
+    <Identity />
+    <div class="mt-6">
+      <ProofRow />
+    </div>
+  </div>
+
+  <div class="spine mt-(--space-section)">
+    {featured && (
+      <Section id="measured" tier="filter" title="Measured" note="Numbers from the work, with what they were measured against.">
+        <MetricStrip metrics={featured.data.metrics} />
+      </Section>
+    )}
+
+    <Section id="stack" tier="filter" title="Stack" note="Grouped by what each tool is for.">
+      <StackGroups />
+    </Section>
+
+    <Section id="work" tier="hook" title="Work" note="One system in full, then the rest.">
+      {/* Systems separate by air, not by a rule or a gap between boxes. */}
+      <div class="space-y-(--space-block)">
+        {featured && <SystemCard system={featured} index={1} total={systems.length} />}
+        {others.map((system, i) => (
+          <SystemCard system={system} index={i + 2} total={systems.length} />
+        ))}
+      </div>
+    </Section>
+
+    <Section id="roles" tier="hook" title="Experience">
+      <RoleTimeline roles={roles} />
+    </Section>
+
+    <Section id="lab" tier="depth" title="Lab" note="Small interactive explainers, one concept each.">
+      <LabGrid items={lab} />
+    </Section>
+
+    <Section id="writing" tier="depth" title="Writing">
+      <PostList posts={posts} />
+    </Section>
+
+    <Section id="record" tier="depth" title="Record">
+      <RecordList />
+    </Section>
+
+    <Section id="profiles" tier="depth" title="Profiles">
+      <ProfileLinks />
+    </Section>
+  </div>
+
+  <footer class="mt-(--space-section)">
+    <a href={`mailto:${site.email}`} class="link-draw text-[15px]">{site.email}</a>
+    <p class="mt-1 text-xs text-ink-3">{site.availability}</p>
+  </footer>
+
+  <Toast />
+</PageLayout>
