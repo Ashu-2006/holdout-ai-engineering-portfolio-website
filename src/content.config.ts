@@ -69,6 +69,20 @@ const evalResult = z.object({
   failureNotes: z.string(),
 });
 
+/**
+ * An architecture diagram. Must be legible in ~15 seconds without prose,
+ * which is a constraint on the author, not on the renderer: four nodes and
+ * three edges, not fifteen.
+ */
+const diagram = z.object({
+  /** Inline SVG is the default. Mermaid is the escape hatch for flows. */
+  kind: z.enum(["svg", "mermaid"]),
+  source: z.string(),
+  /** Required. A diagram with no alt text is decoration. */
+  alt: z.string(),
+  caption: z.string().optional(),
+});
+
 /** A shipped system. The primary unit of evidence. */
 const systems = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/systems" }),
@@ -88,6 +102,7 @@ const systems = defineCollection({
      */
     maturity: z.enum(["deployed", "shipped", "prototype", "archived"]),
     liveDemo: z.string().url().optional(),
+    diagram: diagram.optional(),
     /** At least two, so a single cherry-picked number is not enough. */
     metrics: z.array(metric).min(2),
     stack: z.array(z.string()).min(1),
@@ -133,6 +148,11 @@ const posts = defineCollection({
     date: z.coerce.date().optional(),
     readingTime: z.string().optional(),
     status: z.enum(["live", "draft"]).default("draft"),
+    /**
+     * Where a draft actually is, shown verbatim in the queue. "outlined"
+     * is information; "coming soon" is a promise with no date on it.
+     */
+    stage: z.enum(["outlined", "drafting", "in progress", "in review"]).optional(),
     tags: z.array(z.string()).default([]),
   }),
 });

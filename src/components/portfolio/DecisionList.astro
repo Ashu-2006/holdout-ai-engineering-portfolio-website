@@ -6,70 +6,140 @@ interface Props {
 }
 const { decisions } = Astro.props;
 ---
-<div class="reveal space-y-3">
-  {decisions.map((d, i) => (
-    <details class="decision card overflow-hidden">
-      <summary class="flex cursor-pointer list-none items-start gap-3.5 p-5">
-        <span class="numeric shrink-0 pt-1 text-[11px] text-ink-4">D{i + 1}</span>
-        <span class="flex-1 text-[14.5px] leading-snug font-medium text-ink">{d.decision}</span>
-        <span class="marker grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sunken text-[13px] text-ink-3">+</span>
-      </summary>
 
-      <div class="body">
-        <dl class="space-y-3 px-5 pb-5 pl-[3.4rem] text-[13.5px]">
-          <div class="flex gap-3">
-            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-ink-4">instead of</dt>
-            <dd>{d.alternatives.join(", ")}</dd>
-          </div>
-          <div class="flex gap-3">
-            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-ink-4">because</dt>
-            <dd>{d.rationale}</dd>
-          </div>
-          <div class="flex gap-3">
-            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-caution">it cost</dt>
-            <dd>{d.tradeoff}</dd>
-          </div>
-          <div class="flex gap-3">
-            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-ink-4">knock-on</dt>
-            <dd>
-              <ul class="space-y-1.5">
-                {d.secondOrder.map((o) => (
-                  <li class="flex gap-2"><span class="text-measured">&rarr;</span>{o}</li>
-                ))}
-              </ul>
-            </dd>
-          </div>
+{
+  /*
+   * Five decision records written as prose are five paragraphs nobody
+   * reads. The same five in a fixed grammar scan as a table, because the
+   * label column aligns across every record and the eye can read down one
+   * field at a time.
+   *
+   * Nothing is collapsed. This was previously a <details> that hid every
+   * field behind a click, which meant `it cost` (the one field that
+   * separates mid from senior) was closed by default. A disclosure is the
+   * wrong mechanism when the hidden content is the point.
+   */
+}
+<ol class="decisions reveal">
+  {
+    decisions.map((d, i) => (
+      <li class="decision">
+        <p class="d-head">
+          <span class="numeric d-index">D{i + 1}</span>
+          <span class="d-title">{d.decision}</span>
+        </p>
+
+        <dl class="d-body">
+          <dt>instead of</dt>
+          <dd>{d.alternatives.join(", ")}</dd>
+
+          <dt>because</dt>
+          <dd>{d.rationale}</dd>
+
+          <dt class="d-cost-label">it cost</dt>
+          <dd class="d-cost">{d.tradeoff}</dd>
+
+          <dt>knock-on</dt>
+          <dd>
+            <ul class="d-knock">
+              {d.secondOrder.map((o) => (
+                <li>{o}</li>
+              ))}
+            </ul>
+          </dd>
         </dl>
-      </div>
-    </details>
-  ))}
-</div>
+      </li>
+    ))
+  }
+</ol>
 
 <style>
-  .decision summary::-webkit-details-marker { display: none; }
-
-  .marker {
-    transition:
-      transform var(--motion-disclose),
-      background-color var(--motion-hover);
+  .decisions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-block);
   }
-  .decision[open] .marker { transform: rotate(45deg); }
 
-  /* grid-template-rows is the one layout property worth animating: it is the
-     only way to transition to an intrinsic height. Content is small here, so
-     the layout cost per frame is negligible. */
-  .body {
+  .d-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-row);
+    margin-bottom: var(--space-row);
+  }
+  .d-index {
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    color: var(--color-ink-4);
+  }
+  .d-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--color-ink);
+  }
+
+  /*
+   * The fixed label column is what turns four records into one scannable
+   * table. It aligns with the title above it, not with the D-index, so
+   * the record reads as a heading with an indented body.
+   */
+  .d-body {
     display: grid;
-    grid-template-rows: 0fr;
-    opacity: 0;
-    /* grid-template-rows is the one layout property permitted to
-       transition: no transform collapses a box to nothing without
-       leaving a gap. Padding lives on .body > *, never on the 0fr
-       track, or the panel keeps a residual height strip. */
-    transition:
-      grid-template-rows var(--motion-disclose),
-      opacity var(--motion-hover);
+    grid-template-columns: 5.25rem 1fr;
+    gap: var(--space-row) var(--space-row);
+    margin-left: 1.75rem;
+    font-size: 0.84375rem;
+    line-height: 1.6;
   }
-  .body > * { overflow: hidden; }
-  .decision[open] .body { grid-template-rows: 1fr; opacity: 1; }
+  .d-body dt {
+    font-size: 0.6875rem;
+    color: var(--color-ink-4);
+    padding-top: 0.25rem;
+  }
+  .d-body dd {
+    color: var(--color-ink-2);
+  }
+
+  /*
+   * The cost is never muted and never behind a click. Scoped under .d-body
+   * so it outranks `.d-body dt/dd` on specificity rather than on
+   * !important, which would just move the problem to the next override.
+   */
+  .d-body .d-cost-label {
+    color: var(--color-caution);
+  }
+  .d-body .d-cost {
+    color: var(--color-ink);
+  }
+
+  .d-knock {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-tight);
+  }
+  .d-knock li {
+    padding-left: 0.875rem;
+    position: relative;
+    color: var(--color-ink-3);
+  }
+  .d-knock li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.5625rem;
+    width: 0.375rem;
+    height: 1px;
+    background-color: var(--color-ink-4);
+  }
+
+  @media (max-width: 34rem) {
+    .d-body {
+      grid-template-columns: 1fr;
+      gap: 0.125rem;
+      margin-left: 0;
+    }
+    .d-body dt {
+      padding-top: var(--space-tight);
+    }
+  }
 </style>

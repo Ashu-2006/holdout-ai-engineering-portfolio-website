@@ -5,6 +5,7 @@ import PageLayout from "../../layouts/PageLayout.astro";
 import MetricStrip from "../../components/portfolio/MetricStrip.astro";
 import DecisionList from "../../components/portfolio/DecisionList.astro";
 import EvalCard from "../../components/portfolio/EvalCard.astro";
+import Diagram from "../../components/portfolio/Diagram.astro";
 import Section from "../../components/portfolio/Section.astro";
 import Toast from "../../components/portfolio/Toast.astro";
 
@@ -58,10 +59,16 @@ const nav = [
     </blockquote>
   )}
 
-  <div class="mt-12 space-y-12">
+  <div class="spine mt-(--space-section)">
     <Section id="measured" title="Measured">
       <MetricStrip metrics={data.metrics} />
     </Section>
+
+    {data.diagram && (
+      <Section id="architecture" title="Architecture" note="Legible without reading the prose below it.">
+        <Diagram diagram={data.diagram} />
+      </Section>
+    )}
 
     {data.decisions.length > 0 && (
       <Section id="decisions" title="Decisions" note="What was chosen, what it cost, and what it changed downstream.">
@@ -79,7 +86,7 @@ const nav = [
 
     {data.limitations.length > 0 && (
       <Section id="limitations" title="Limitations">
-        <ul class="reveal card space-y-2 p-5 text-[13px]">
+        <ul class="reveal space-y-2 text-[13px]">
           {data.limitations.map((l) => (
             <li class="flex gap-2"><span class="text-caution">&bull;</span>{l}</li>
           ))}
@@ -92,7 +99,7 @@ const nav = [
     </div>
 
     {data.talkingPoint && (
-      <aside class="reveal card p-5">
+      <aside class="reveal well">
         <p class="text-[11px] text-measured">Ask me about</p>
         <p class="mt-1.5 text-[14px] leading-relaxed">{data.talkingPoint}</p>
       </aside>

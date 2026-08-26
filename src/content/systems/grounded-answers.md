@@ -22,6 +22,32 @@ metrics:
     label: hallucination rate
     context: down from 18%, LLM-as-judge on 500 answers
     baseline: "18%"
+diagram:
+  kind: svg
+  alt: "A query fans out to a dense retriever and a sparse retriever, their results merge through a reranker, and the reader generates a grounded answer"
+  caption: "The reranker is where the precision came from, not the embedding model."
+  source: |
+    <svg viewBox="0 0 640 124" fill="none" stroke-width="1.25" aria-hidden="true">
+      <rect x="4" y="44" width="92" height="36" rx="6"/>
+      <text x="50" y="66" text-anchor="middle">query</text>
+
+      <rect x="164" y="8" width="120" height="36" rx="6"/>
+      <text x="224" y="30" text-anchor="middle">dense · qdrant</text>
+      <rect x="164" y="80" width="120" height="36" rx="6"/>
+      <text x="224" y="102" text-anchor="middle">sparse · bm25</text>
+
+      <rect x="348" y="44" width="100" height="36" rx="6"/>
+      <text x="398" y="66" text-anchor="middle">rerank 50</text>
+
+      <rect x="512" y="44" width="124" height="36" rx="6"/>
+      <text x="574" y="66" text-anchor="middle">grounded answer</text>
+
+      <path d="M96 62 L130 62 L130 26 L164 26"/>
+      <path d="M96 62 L130 62 L130 98 L164 98"/>
+      <path d="M284 26 L316 26 L316 62 L348 62"/>
+      <path d="M284 98 L316 98 L316 62 L348 62"/>
+      <path d="M448 62 L512 62"/>
+    </svg>
 stack: [Qdrant, BM25, Cohere rerank, vLLM, Ragas, FastAPI]
 artifacts:
   - kind: repo
