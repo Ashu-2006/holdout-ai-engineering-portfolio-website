@@ -1,0 +1,20 @@
+---
+import { stackGroups } from "../../config/site";
+---
+<div class="reveal grid gap-3 sm:grid-cols-2">
+  {stackGroups.map((g) => (
+    <section class="card p-4">
+      <h3 class="flex items-baseline justify-between text-[13px] font-medium text-ink">
+        {g.group}
+        <span class="numeric text-[11px] font-normal text-ink-4">{g.items.length}</span>
+      </h3>
+      <ul class="mt-3 flex flex-wrap gap-1.5">
+        {g.items.map((item) => (
+          <li class="rounded-well bg-sunken px-2 py-1 text-xs transition-colors duration-fast ease-out hover:text-ink">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</div>

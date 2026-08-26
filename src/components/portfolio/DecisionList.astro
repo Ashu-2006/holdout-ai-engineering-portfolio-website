@@ -1,0 +1,75 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  decisions: CollectionEntry<"systems">["data"]["decisions"];
+}
+const { decisions } = Astro.props;
+---
+<div class="reveal space-y-3">
+  {decisions.map((d, i) => (
+    <details class="decision card overflow-hidden">
+      <summary class="flex cursor-pointer list-none items-start gap-3.5 p-5">
+        <span class="numeric shrink-0 pt-1 text-[11px] text-ink-4">D{i + 1}</span>
+        <span class="flex-1 text-[14.5px] leading-snug font-medium text-ink">{d.decision}</span>
+        <span class="marker grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sunken text-[13px] text-ink-3">+</span>
+      </summary>
+
+      <div class="body">
+        <dl class="space-y-3 px-5 pb-5 pl-[3.4rem] text-[13.5px]">
+          <div class="flex gap-3">
+            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-ink-4">instead of</dt>
+            <dd>{d.alternatives.join(", ")}</dd>
+          </div>
+          <div class="flex gap-3">
+            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-ink-4">because</dt>
+            <dd>{d.rationale}</dd>
+          </div>
+          <div class="flex gap-3">
+            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-caution">it cost</dt>
+            <dd>{d.tradeoff}</dd>
+          </div>
+          <div class="flex gap-3">
+            <dt class="w-[4.75rem] shrink-0 pt-0.5 text-[11px] text-ink-4">knock-on</dt>
+            <dd>
+              <ul class="space-y-1.5">
+                {d.secondOrder.map((o) => (
+                  <li class="flex gap-2"><span class="text-measured">&rarr;</span>{o}</li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </details>
+  ))}
+</div>
+
+<style>
+  .decision summary::-webkit-details-marker { display: none; }
+
+  .marker {
+    transition:
+      transform var(--motion-disclose),
+      background-color var(--motion-hover);
+  }
+  .decision[open] .marker { transform: rotate(45deg); }
+
+  /* grid-template-rows is the one layout property worth animating: it is the
+     only way to transition to an intrinsic height. Content is small here, so
+     the layout cost per frame is negligible. */
+  .body {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    /* grid-template-rows is the one layout property permitted to
+       transition: no transform collapses a box to nothing without
+       leaving a gap. Padding lives on .body > *, never on the 0fr
+       track, or the panel keeps a residual height strip. */
+    transition:
+      grid-template-rows var(--motion-disclose),
+      opacity var(--motion-hover);
+  }
+  .body > * { overflow: hidden; }
+  .decision[open] .body { grid-template-rows: 1fr; opacity: 1; }
+</style>

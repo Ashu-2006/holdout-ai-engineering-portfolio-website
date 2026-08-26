@@ -1,0 +1,303 @@
+/* ============================================================
+   Design tokens.
+
+   Declared in Tailwind's @theme so utilities are generated:
+   --color-ink-2  ->  text-ink-2, bg-ink-2, border-ink-2
+   --radius-card  ->  rounded-card
+   --ease-out     ->  ease-out
+
+   Nothing in a component should use an inline style or a raw
+   hex value. If a value is needed twice, it belongs here.
+   ============================================================ */
+
+@theme {
+  /* ---- type ---------------------------------------------- */
+  --font-sans:
+    "SF Compact", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  /* ---- neutral ground, matching the base template --------- */
+  --color-ground: #fafafa; /* body */
+  --color-surface: #ffffff; /* cards */
+  --color-sunken: #f4f4f5; /* wells, chips */
+
+  --color-ink: #262626; /* titles */
+  --color-ink-2: #525252; /* body */
+  --color-ink-3: #737373; /* meta */
+  --color-ink-4: #a3a3a3; /* faint, icons */
+
+  --color-line: rgb(0 0 0 / 0.07);
+  --color-line-2: rgb(0 0 0 / 0.05);
+
+  /* semantic: measured values and warnings only */
+  --color-measured: #15803d;
+  --color-caution: #b45309;
+
+  /* ---- radii ---------------------------------------------- */
+  --radius-card: 1rem;
+  --radius-well: 0.5rem;
+
+  /* ---- motion: 4 durations, 2 curves. no fifth. ----------- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Tailwind's namespace for duration-* utilities is --transition-duration-*.
+     Both are declared: the aliases keep var(--duration-fast) readable inside
+     component <style> blocks, the namespaced ones generate the utilities. */
+  --transition-duration-instant: 80ms;
+  --transition-duration-fast: 160ms;
+  --transition-duration-moderate: 240ms;
+  --transition-duration-slow: 460ms;
+
+  --duration-instant: var(--transition-duration-instant);
+  --duration-fast: var(--transition-duration-fast);
+  --duration-moderate: var(--transition-duration-moderate);
+  --duration-slow: var(--transition-duration-slow);
+
+  /* ---- motion: semantics name the job, primitives name the physics ----
+     A fourth curve would mean the scale is wrong, not that we need more.
+     --ease-exit earns its place because arrival and departure are
+     different statements: ease-out is a verb of arrival, ease-exit
+     commits and then stops. */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --motion-hover: var(--duration-fast) var(--ease-out);
+  --motion-reveal: var(--duration-slow) var(--ease-out);
+  --motion-disclose: var(--duration-moderate) var(--ease-out);
+  --motion-dismiss: var(--duration-fast) var(--ease-exit);
+  --motion-density: var(--duration-moderate) var(--ease-in-out);
+
+  /* Stagger stays one value. Choreography is rhythm, not variety.
+     --stagger-figure is tighter because pieces of one drawing are not
+     a list of items: the eye reads them as a single arrival. */
+  --stagger-step: 40ms;
+  --stagger-figure: 14ms;
+  --stagger-cap: 8;
+  /* The dock waits for the hero to finish before it arrives. */
+  --delay-dock: 420ms;
+
+  /* ---- layer budget: every stacked surface names its floor ---- */
+  --layer-rail: 10;
+  --layer-dock: 40;
+  --layer-toast: 60;
+
+  /* ---- optical nudges, tokenized so they survive code review ----
+     A chip label sits 1px low because descenders drag the baseline
+     down. Named, so the next reader does not "fix" it. */
+  --nudge-y-chip-label: -1px;
+  --nudge-x-arrow-trailing: 1px;
+
+  /* ---- radius: inner = outer minus padding. One subtraction. ---- */
+  --radius-chip: 0.375rem;
+
+  /* ---- elevation: three faint layers, never one dark one --- */
+  --shadow-seat:
+    0 1px 2px rgb(0 0 0 / 0.06), 0 6px 12px rgb(0 0 0 / 0.06),
+    0 18px 32px rgb(0 0 0 / 0.07);
+  --shadow-lift:
+    0 2px 4px rgb(0 0 0 / 0.06), 0 10px 20px rgb(0 0 0 / 0.07),
+    0 28px 48px rgb(0 0 0 / 0.08);
+}
+
+/* ---- dark mode: redefine the same tokens ------------------ */
+[data-theme="dark"] {
+  --color-ground: #0c0c0d;
+  --color-surface: #17171a;
+  --color-sunken: #121214;
+
+  --color-ink: #f0f0f0;
+  --color-ink-2: #b8b8b8;
+  --color-ink-3: #8a8a8a;
+  --color-ink-4: #5c5c5c;
+
+  --color-line: rgb(255 255 255 / 0.09);
+  --color-line-2: rgb(255 255 255 / 0.06);
+
+  --color-measured: #4ade80;
+  --color-caution: #fbbf24;
+
+  --shadow-seat: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 20px rgb(0 0 0 / 0.4);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.5), 0 16px 36px rgb(0 0 0 / 0.45);
+}
+
+/* ============================================================
+   Component layer. Recurring patterns only. Anything used
+   once stays as utilities in the component.
+   ============================================================ */
+
+@layer components {
+  /* Card: seated with the three-shadow stack plus a hairline. */
+  .card {
+    background-color: var(--color-surface);
+    border-radius: var(--radius-card);
+    box-shadow:
+      var(--shadow-seat),
+      inset 0 0 0 1px var(--color-line-2);
+    transition:
+      transform var(--motion-hover),
+      box-shadow var(--motion-hover);
+  }
+
+  /* Interactive variant. Press feedback only where a real pointer exists. */
+  @media (hover: hover) and (pointer: fine) {
+    .card-interactive:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        var(--shadow-lift),
+        inset 0 0 0 1px var(--color-line-2);
+    }
+  }
+  .card-interactive:active {
+    transform: scale(0.985);
+  }
+
+  /* Frosted glass, the base template's signature treatment. */
+  .glass {
+    background-image: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.72),
+      rgb(255 255 255 / 0.58)
+    );
+    backdrop-filter: blur(16px) saturate(180%);
+  }
+  [data-theme="dark"] .glass {
+    background-image: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.09),
+      rgb(255 255 255 / 0.05)
+    );
+  }
+
+  /* Tabular figures. Numbers are data, so they get their own treatment. */
+  .numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+
+  /* Link with an underline that draws from the left. */
+  .link-draw {
+    position: relative;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+  .link-draw::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 -2px 0;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--motion-hover);
+  }
+  .link-draw:hover::after,
+  .link-draw:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* Underline driven by a parent's hover, for whole-row targets. */
+  .link-draw-child::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 -1px 0;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--motion-disclose);
+  }
+  .group:hover .link-draw-child::after {
+    transform: scaleX(1);
+  }
+
+  /* Skip link: offscreen until focused. */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+  }
+  .skip-link:focus {
+    left: 0.75rem;
+    top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-well);
+    background-color: var(--color-ink);
+    color: var(--color-ground);
+    box-shadow: var(--shadow-seat);
+  }
+}
+
+/* ============================================================
+   Motion primitives
+   ============================================================ */
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer components {
+  /* Page-load entrance. Stagger via an inline --enter-delay index. */
+  .enter {
+    animation: enter-rise var(--motion-reveal) both;
+    /* Stagger is choreography, so the step is one token, and the index
+       is capped: past 8 items the phrase stops reading as rhythm and
+       starts reading as a queue. */
+    animation-delay: calc(
+      min(var(--enter-index, 0), var(--stagger-cap)) * var(--stagger-step)
+    );
+  }
+
+  /* Scroll reveal. data-seen is set by an IntersectionObserver.
+     Opacity resolves before the transform settles, so text is
+     readable while it is still moving. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .reveal[data-seen="true"] {
+    opacity: 1;
+    transform: none;
+    /* Two tokens on purpose, not drift. Opacity finishes before the
+       transform does, so the text is readable while it is still
+       settling. Collapsing these to one value loses that. */
+    transition:
+      opacity var(--motion-disclose),
+      transform var(--motion-reveal);
+  }
+}
+
+/* Required. Vestibular disorders make overshoot genuinely nauseating. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

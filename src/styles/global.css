@@ -1,14 +1,8 @@
 @import "tailwindcss";
+@import "./theme.css";
 
-@theme {
-  --font-sans:
-    "SF Compact", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
-
-  /* Stronger than the built-in curves - these have the punch UI needs. */
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-}
+/* Type and motion tokens live in theme.css, which is the single source of
+   truth. Importing both files here would declare them twice. */
 
 /* Native cross-document transitions: no router, no JS. Cards carry matching
    view-transition-names in the folder and in the carousel, so the browser
@@ -19,7 +13,9 @@
 }
 
 ::view-transition-group(*) {
-  animation-duration: 460ms;
+  /* Slow, because a page transition is the largest travel distance in
+     the product. Reads from the token so it moves with the scale. */
+  animation-duration: var(--duration-slow);
   animation-timing-function: var(--ease-out);
 }
 

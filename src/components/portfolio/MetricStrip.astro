@@ -1,0 +1,19 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  metrics: CollectionEntry<"systems">["data"]["metrics"];
+}
+const { metrics } = Astro.props;
+---
+<dl class="reveal grid grid-cols-2 gap-3 sm:grid-cols-4">
+  {metrics.map((m) => (
+    <div class="card p-4">
+      <dd class="numeric text-2xl font-medium text-ink">
+        {m.value}{m.unit && <span class="text-sm font-normal text-ink-4">{m.unit}</span>}
+      </dd>
+      <dt class="mt-1.5 text-[13px] leading-snug">{m.label}</dt>
+      {m.context && <dd class="mt-0.5 text-[11px] text-ink-4">{m.context}</dd>}
+    </div>
+  ))}
+</dl>

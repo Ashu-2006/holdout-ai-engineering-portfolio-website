@@ -1,0 +1,28 @@
+---
+import { site } from "../../config/site";
+---
+<header>
+  <p class="enter flex items-center gap-2 text-xs text-ink-3">
+    <span class="relative flex h-1.5 w-1.5">
+      <span class="absolute h-full w-full animate-ping rounded-full bg-measured opacity-60"></span>
+      <span class="relative h-1.5 w-1.5 rounded-full bg-measured"></span>
+    </span>
+    {site.availability}
+  </p>
+
+  <h1 class="enter mt-5 text-3xl font-medium tracking-tight text-ink sm:text-4xl" style="--enter-index:1">
+    {site.name}
+  </h1>
+
+  <p class="enter mt-3 max-w-lg text-[15px] leading-relaxed" style="--enter-index:2">
+    {site.role}. I build {site.builds}.
+  </p>
+
+  <p class="enter mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" style="--enter-index:3">
+    <a href={`mailto:${site.email}`} class="link-draw">{site.email}</a>
+    <span class="text-xs text-ink-3">{site.location}</span>
+    <span class="hidden text-xs text-ink-3 sm:inline">
+      press <kbd class="rounded bg-sunken px-1 py-0.5 font-mono text-[11px]">c</kbd> to copy
+    </span>
+  </p>
+</header>

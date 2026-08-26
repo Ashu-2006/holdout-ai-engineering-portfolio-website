@@ -1,0 +1,24 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  roles: CollectionEntry<"roles">[];
+}
+const { roles } = Astro.props;
+---
+<ol class="card reveal divide-y divide-line">
+  {roles.map(({ data }) => (
+    <li class="group grid gap-x-5 gap-y-1 p-5 sm:grid-cols-[7rem_1fr]">
+      <p class="numeric pt-0.5 text-[11px] text-ink-4">
+        {data.start}&ndash;{data.end ?? "now"}
+      </p>
+      <div>
+        <p class="text-[14.5px] text-ink">
+          {data.title}<span class="text-ink-4"> at </span>
+          <span class="link-draw-child relative">{data.company}</span>
+        </p>
+        <p class="mt-1 max-w-xl text-[13.5px] leading-relaxed">{data.impact}</p>
+      </div>
+    </li>
+  ))}
+</ol>
