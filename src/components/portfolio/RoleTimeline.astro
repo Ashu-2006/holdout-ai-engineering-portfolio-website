@@ -5,20 +5,145 @@ interface Props {
   roles: CollectionEntry<"roles">[];
 }
 const { roles } = Astro.props;
+
+/**
+ * Dates render as written. A role frontmatter start of "2025" is a year,
+ * "2025-04" is a month, and the reader should see whichever the author
+ * actually knew rather than a fabricated January.
+ */
+function when(raw: string): string {
+  if (/^\d{4}$/.test(raw)) return raw;
+  const [y, m] = raw.split("-");
+  if (!m) return y;
+  return new Date(Number(y), Number(m) - 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
 ---
-<ol class="card reveal divide-y divide-line">
-  {roles.map(({ data }) => (
-    <li class="group grid gap-x-5 gap-y-1 p-5 sm:grid-cols-[7rem_1fr]">
-      <p class="numeric pt-0.5 text-[11px] text-ink-4">
-        {data.start}&ndash;{data.end ?? "now"}
-      </p>
-      <div>
-        <p class="text-[14.5px] text-ink">
-          {data.title}<span class="text-ink-4"> at </span>
-          <span class="link-draw-child relative">{data.company}</span>
-        </p>
-        <p class="mt-1 max-w-xl text-[13.5px] leading-relaxed">{data.impact}</p>
-      </div>
-    </li>
-  ))}
+
+<ol class="roles reveal">
+  {
+    roles.map((r) => (
+      <li class="role">
+        <div>
+          <p class="role-company">
+            <span class="role-name">{r.data.company}</span>
+            {!r.data.end && (
+              <span class="pill">
+                <span class="dot" aria-hidden="true" />
+                Working
+              </span>
+            )}
+          </p>
+          <p class="role-title">{r.data.title}</p>
+        </div>
+
+        {/* Dates and location right-aligned on the same baseline as the
+            company. Ramkrishna's row shape: the two things a recruiter
+            filters on sit where the eye lands after reading the name. */}
+        <div class="role-meta">
+          <p>{when(r.data.start)} - {r.data.end ? when(r.data.end) : "Present"}</p>
+          {/* "Remote (remote)" is the obvious failure here, so workMode is
+              only appended when it adds something the location does not
+              already say. */}
+          {r.data.location && (
+            <p class="role-where">
+              {r.data.location}
+              {r.data.workMode &&
+                r.data.workMode !== r.data.location.toLowerCase() &&
+                ` (${r.data.workMode})`}
+            </p>
+          )}
+        </div>
+
+        {/* The impact line spans both columns so it reads as a sentence
+            rather than as a table cell. */}
+        <p class="role-impact prose-measure">{r.data.impact}</p>
+      </li>
+    ))
+  }
 </ol>
+
+<style>
+  .roles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-block);
+  }
+
+  /*
+   * No rule between rows. Two columns and 48px of air is enough structure
+   * for three items; a divider here would be the fourth border on a page
+   * that has decided not to draw boxes.
+   */
+  .role {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--space-group);
+    row-gap: var(--space-tight);
+  }
+
+  .role-company {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-tight);
+    font-size: 0.9375rem;
+  }
+  .role-name {
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+  .role-title {
+    font-size: 0.8125rem;
+    color: var(--color-ink-3);
+  }
+
+  .role-meta {
+    text-align: right;
+    font-size: 0.8125rem;
+    color: var(--color-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .role-where {
+    color: var(--color-ink-4);
+  }
+
+  .role-impact {
+    grid-column: 1 / -1;
+    margin-top: var(--space-tight);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-ink-2);
+  }
+
+  /* A current role is a state, so it gets a state chip rather than bold. */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--radius-chip);
+    background-color: var(--color-sunken);
+    font-size: 0.6875rem;
+    color: var(--color-ink-3);
+    transform: translateY(var(--nudge-y-chip-label));
+  }
+  .dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: var(--color-measured);
+  }
+
+  /* Under 40rem the right column has nowhere to go, so it stacks under
+     the left rather than wrapping mid-line. */
+  @media (max-width: 40rem) {
+    .role {
+      grid-template-columns: 1fr;
+    }
+    .role-meta {
+      text-align: left;
+    }
+  }
+</style>

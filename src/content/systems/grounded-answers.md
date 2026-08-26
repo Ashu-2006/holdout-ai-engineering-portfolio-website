@@ -1,6 +1,7 @@
 ---
 title: Grounded answer service
 outcome: Cut hallucinated citations from 18% to 3% on a 50,000-document corpus
+maturity: deployed
 relevanceNote: >-
   Built the retrieval and evaluation layer end to end. Maps directly to teams
   shipping grounded answer products where citation accuracy is the constraint.
@@ -19,6 +20,7 @@ metrics:
     baseline: 1.4s
   - value: "3%"
     label: hallucination rate
+    context: down from 18%, LLM-as-judge on 500 answers
     baseline: "18%"
 stack: [Qdrant, BM25, Cohere rerank, vLLM, Ragas, FastAPI]
 artifacts:

@@ -21,10 +21,17 @@ const metric = z.object({
   value: z.string(),
   label: z.string(),
   unit: z.string().optional(),
-  /** e.g. "@k=5, 50k docs" — what the number was measured against. */
-  context: z.string().optional(),
+  /**
+   * Required, not optional. A number with no measurement context is
+   * unreadable: 94% of what, over what, at what k. Making this optional
+   * makes it skippable, and it is the half that turns a claim into
+   * evidence. If a number has no honest context, delete the number.
+   */
+  context: z.string(),
   /** What it was before, when there is a before. */
   baseline: z.string().optional(),
+  /** The artifact that proves it: a harness, a run, a model card. */
+  proof: z.string().url().optional(),
 });
 
 /** An external thing a reviewer can open and verify. */
@@ -71,6 +78,15 @@ const systems = defineCollection({
     outcome: z.string(),
     /** Why this matters for the role being applied to. */
     relevanceNote: z.string().optional(),
+    /**
+     * Required, and it drives the card's whole treatment.
+     *
+     * The research demands that a missing live demo read as a gap. Most
+     * templates handle that by omitting the field, which hides the gap.
+     * A required four-case enum turns the absence into a named state
+     * instead of a silent special case.
+     */
+    maturity: z.enum(["deployed", "shipped", "prototype", "archived"]),
     liveDemo: z.string().url().optional(),
     /** At least two, so a single cherry-picked number is not enough. */
     metrics: z.array(metric).min(2),
@@ -99,6 +115,10 @@ const roles = defineCollection({
     end: z.string().optional(),
     /** One line: what changed because you were there. */
     impact: z.string(),
+    /** City, country. Recruiters filter on this. */
+    location: z.string().optional(),
+    /** How the work happened. Also a filter. */
+    workMode: z.enum(["on-site", "remote", "hybrid"]).optional(),
     stack: z.array(z.string()).default([]),
     order: z.number().default(99),
   }),

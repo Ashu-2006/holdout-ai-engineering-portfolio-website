@@ -1,12 +1,14 @@
 ---
 title: Multi-agent workflow with tracing
 outcome: Cut silent failures 71% by making every tool call in a 6-step agent observable
+maturity: deployed
 liveDemo: https://example.dev/agent
 order: 2
 metrics:
   - value: "71%"
     label: fewer silent failures
-    baseline: pre-instrumentation
+    context: replay of 400 production runs
+    baseline: "31 of 400 runs failed silently"
   - value: "6"
     label: tool steps traced
     context: end to end

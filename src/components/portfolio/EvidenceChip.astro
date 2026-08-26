@@ -1,0 +1,105 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  metric: CollectionEntry<"systems">["data"]["metrics"][number];
+}
+const { metric } = Astro.props;
+const { value, label, unit, context, baseline, proof } = metric;
+---
+
+{
+  /*
+   * A grounded answer cites the span, not the document, because a citation
+   * you cannot check is decoration. The same argument applies to a metric.
+   * "94% precision@5" is a claim. The same number with what it was measured
+   * against, and a link to the harness, is evidence.
+   *
+   * Context renders always, never behind a hover, because hover does not
+   * exist on the phone a recruiter is holding.
+   */
+}
+<div class="ev">
+  <p class="ev-value">
+    <span class="numeric ev-num">{value}</span>{unit && <span class="ev-unit">{unit}</span>}
+  </p>
+  <p class="ev-label">{label}</p>
+  <p class="ev-context">{context}</p>
+  {baseline && <p class="ev-baseline numeric">was {baseline}</p>}
+  {
+    proof && (
+      <a class="ev-proof" href={proof}>
+        how this was measured
+      </a>
+    )
+  }
+</div>
+
+<style>
+  /*
+   * No border, no fill, no shadow. A metric is a number and three lines of
+   * support; boxing it adds a rectangle that says nothing the alignment
+   * does not already say.
+   */
+  .ev {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  /* Numerals stop the F-pattern scan, so the number takes the weight and
+     everything under it is deliberately quieter. */
+  .ev-num {
+    font-size: 1.875rem;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--color-ink);
+  }
+  .ev-unit {
+    font-size: 0.8125rem;
+    color: var(--color-ink-3);
+  }
+  .ev-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.0625rem;
+    margin-bottom: var(--space-tight);
+  }
+
+  .ev-label {
+    font-size: 0.875rem;
+    color: var(--color-ink-2);
+  }
+  .ev-context {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--color-ink-4);
+    max-width: 24ch;
+  }
+  /*
+   * The baseline is context, not an achievement, so it stays neutral. In
+   * the measured green it read as if the old number were the good one:
+   * "was 18%" in the success colour says the opposite of what it means.
+   */
+  .ev-baseline {
+    font-size: 0.75rem;
+    color: var(--color-ink-4);
+  }
+
+  .ev-proof {
+    align-self: start;
+    margin-top: var(--space-tight);
+    font-size: 0.75rem;
+    color: var(--color-ink-3);
+    /* One hairline, under a link, where it reads as an affordance rather
+       than as a border. */
+    border-bottom: 1px solid var(--color-line);
+    transition:
+      color var(--motion-hover),
+      border-color var(--motion-hover);
+  }
+  .ev-proof:hover {
+    color: var(--color-ink);
+    border-bottom-color: var(--color-ink-4);
+  }
+</style>

@@ -1,10 +1,13 @@
 ---
 title: Fine-tuned extraction model
 outcome: Matched a frontier-model baseline on schema extraction at 1/40th the inference cost
+maturity: prototype
 order: 3
 metrics:
   - value: "+8.4"
     label: F1 over prompted baseline
+    context: exact-match on 1,200 held-out schema fields
+    baseline: "0.79 F1 prompted"
   - value: "40x"
     label: cheaper per call
     context: $8.20 to $0.21 per 1k
