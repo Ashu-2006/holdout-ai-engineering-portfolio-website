@@ -19,11 +19,22 @@ const { id, title, note, tier } = Astro.props;
 ---
 
 <section id={id} class="section scroll-mt-16" data-tier={tier}>
-  <div class="section-head">
-    <h2 class="section-title">{title}</h2>
-    {note && <p class="section-note note-measure">{note}</p>}
+  {
+    /*
+     * One wrapper around everything, so the density control has a single
+     * grid child to collapse. With the head and the slot as two siblings,
+     * `grid-template-rows: 0fr` sizes only the first row and the content
+     * gets an implicit auto row, which collapses the heading and leaves
+     * the body at full height.
+     */
+  }
+  <div class="section-inner">
+    <div class="section-head">
+      <h2 class="section-title">{title}</h2>
+      {note && <p class="section-note note-measure">{note}</p>}
+    </div>
+    <slot />
   </div>
-  <slot />
 </section>
 
 <style>

@@ -72,14 +72,23 @@ const initials = site.name
   .dock {
     animation: dock-enter var(--motion-reveal) var(--delay-dock) both;
   }
+
+  /*
+   * Y only. Tailwind v4 implements `-translate-x-1/2` with the independent
+   * `translate` property rather than `transform`, so a keyframe animating
+   * `transform` no longer overrides the utility, it composes with it. The
+   * previous `translate(-50%, …)` here applied the centering a second time
+   * and pushed the dock 143px left of centre, which clipped it off-screen
+   * at 390px wide.
+   */
   @keyframes dock-enter {
     from {
       opacity: 0;
-      transform: translate(-50%, 130%);
+      transform: translateY(130%);
     }
     to {
       opacity: 1;
-      transform: translate(-50%, 0);
+      transform: none;
     }
   }
   .dock-link[data-active] {

@@ -3,6 +3,8 @@ import { getCollection } from "astro:content";
 import PageLayout from "../layouts/PageLayout.astro";
 import Identity from "../components/portfolio/Identity.astro";
 import ProofRow from "../components/portfolio/ProofRow.astro";
+import DensityToggle from "../components/portfolio/DensityToggle.astro";
+import ScanRail from "../components/portfolio/ScanRail.astro";
 import MetricStrip from "../components/portfolio/MetricStrip.astro";
 import StackGroups from "../components/portfolio/StackGroups.astro";
 import SystemCard from "../components/portfolio/SystemCard.astro";
@@ -54,8 +56,9 @@ const nav = [
       metric, so the proof row sits above the numbers. */}
   <div data-tier="filter">
     <Identity />
-    <div class="mt-6">
+    <div class="mt-6 flex flex-wrap items-baseline justify-between gap-(--space-row)">
       <ProofRow />
+      <DensityToggle />
     </div>
   </div>
 
@@ -106,5 +109,6 @@ const nav = [
     <p class="mt-1 text-xs text-ink-3">{site.availability}</p>
   </footer>
 
+  <ScanRail />
   <Toast />
 </PageLayout>

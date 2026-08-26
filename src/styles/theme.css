@@ -209,6 +209,55 @@
     margin-top: var(--space-section);
   }
 
+  /*
+   * Density. Sections declare their tier; this decides which tiers render.
+   *
+   * grid-template-rows is the one layout property allowed to transition,
+   * and only here: no transform collapses a box to nothing without
+   * leaving its space behind. The child needs min-height:0 and
+   * overflow:hidden or the 0fr track keeps a residual strip and the
+   * section never fully closes.
+   */
+  /* Grid on the section, one child (.section-inner) as the single row. */
+  [data-tier="depth"] {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--motion-density);
+  }
+  [data-tier="depth"] > * {
+    overflow: hidden;
+    min-height: 0;
+  }
+  html[data-density="less"] [data-tier="depth"] {
+    grid-template-rows: 0fr;
+  }
+  /* The section margin goes too, or collapsed sections leave stacked gaps
+     where the content used to be. */
+  html[data-density="less"] .spine > [data-tier="depth"] {
+    margin-top: 0;
+  }
+
+  /* Copy confirmation, swapped in place. 4px and a 2px blur: small enough
+     to register without pulling the eye off the page. */
+  [data-copy-label] {
+    display: inline-block;
+  }
+  [data-copy-label].is-swapped {
+    animation: label-swap var(--motion-disclose) both;
+  }
+  @keyframes label-swap {
+    from {
+      opacity: 0;
+      filter: blur(2px);
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      filter: blur(0);
+      transform: none;
+    }
+  }
+
   .prose-measure {
     max-width: var(--measure-prose);
     text-wrap: pretty;

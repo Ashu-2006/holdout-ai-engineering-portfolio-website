@@ -6,7 +6,7 @@ import { glob } from "astro/loaders";
 
    These are the product. A portfolio template's real value is a
    validated shape that makes the strong thing easy to express and
-   the weak thing hard — see docs/HIRING-SIGNALS.md.
+   the weak thing hard. See docs/HIRING-SIGNALS.md.
 
    Deliberate constraints, each traceable to research:
    - EvalResult REQUIRES baseline + failureNotes, so a bare
@@ -110,7 +110,7 @@ const systems = defineCollection({
     decisions: z.array(decisionRecord).default([]),
     evals: z.array(evalResult).default([]),
     limitations: z.array(z.string()).default([]),
-    /** "Ask me about…" — portfolios are used to source interview questions. */
+    /** "Ask me about..." Portfolios are used to source interview questions. */
     talkingPoint: z.string().optional(),
     /** Exactly one system should set this. Enforced at build time. */
     featured: z.boolean().default(false),

@@ -1,0 +1,51 @@
+---
+/**
+ * Progressive disclosure applied to the whole page.
+ *
+ * The research demands two incompatible things: a front-loaded, metric-
+ * dense scan path for the recruiter, and depth for the hiring manager.
+ * Every resolution up to now has been spatial (signal on top, depth
+ * below). This makes it a user-selected density instead, which is the
+ * best idea on the reference board (Chánh Đại's Less / More control).
+ *
+ * Two states, not a slider. A slider implies a continuum the content does
+ * not have: a section is either in the filter or it is depth.
+ */
+---
+
+<div class="density" role="group" aria-label="Page detail">
+  <button type="button" data-density="less" aria-pressed="false">Less</button>
+  <button type="button" data-density="more" aria-pressed="true">More</button>
+</div>
+
+<style>
+  .density {
+    display: inline-flex;
+    gap: 0.125rem;
+    padding: 0.125rem;
+    border-radius: var(--radius-chip);
+    background-color: var(--color-sunken);
+  }
+
+  .density button {
+    padding: 0.1875rem 0.5rem;
+    /* inner = outer minus padding: chip 6px, padding 2px, so 4px. */
+    border-radius: calc(var(--radius-chip) - 0.125rem);
+    font-size: 0.6875rem;
+    color: var(--color-ink-4);
+    cursor: pointer;
+    transition:
+      color var(--motion-hover),
+      background-color var(--motion-hover);
+  }
+  .density button:hover {
+    color: var(--color-ink-2);
+  }
+
+  /* The pressed state is the surface, so the control reads as a segmented
+     switch without needing a sliding indicator to animate. */
+  .density button[aria-pressed="true"] {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+</style>

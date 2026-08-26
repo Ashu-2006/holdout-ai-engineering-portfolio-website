@@ -1,28 +1,136 @@
 ---
 import { site } from "../../config/site";
+
+/**
+ * Rendered server-side as a fallback, then corrected on the client.
+ * A server-rendered clock is wrong the moment the page is cached, so the
+ * static value exists only so the line is never empty and the script owns
+ * the truth.
+ */
+const serverTime = new Intl.DateTimeFormat("en-US", {
+  timeZone: site.timezone,
+  hour: "numeric",
+  minute: "2-digit",
+}).format(new Date());
 ---
+
 <header>
-  <p class="enter flex items-center gap-2 text-xs text-ink-3">
-    <span class="relative flex h-1.5 w-1.5">
-      <span class="absolute h-full w-full animate-ping rounded-full bg-measured opacity-60"></span>
-      <span class="relative h-1.5 w-1.5 rounded-full bg-measured"></span>
+  <p class="enter avail">
+    <span class="avail-dot">
+      <span class="avail-ping" aria-hidden="true"></span>
+      <span class="avail-core" aria-hidden="true"></span>
     </span>
     {site.availability}
   </p>
 
-  <h1 class="enter mt-5 text-3xl font-medium tracking-tight text-ink sm:text-4xl" style="--enter-index:1">
-    {site.name}
-  </h1>
+  <h1 class="enter name" style="--enter-index:1">{site.name}</h1>
 
-  <p class="enter mt-3 max-w-lg text-[15px] leading-relaxed" style="--enter-index:2">
+  <p class="enter tagline prose-measure" style="--enter-index:2">
     {site.role}. I build {site.builds}.
   </p>
 
-  <p class="enter mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" style="--enter-index:3">
+  <p class="enter contact" style="--enter-index:3">
     <a href={`mailto:${site.email}`} class="link-draw">{site.email}</a>
-    <span class="text-xs text-ink-3">{site.location}</span>
-    <span class="hidden text-xs text-ink-3 sm:inline">
-      press <kbd class="rounded bg-sunken px-1 py-0.5 font-mono text-[11px]">c</kbd> to copy
-    </span>
+    <button type="button" class="copy" data-copy-email={site.email}>
+      <span data-copy-label>copy</span>
+    </button>
+  </p>
+
+  {
+    /*
+     * Local time beats a status dot as an availability signal: it tells a
+     * recruiter in another timezone whether to expect a reply today, which
+     * is the actual question behind "are they available".
+     */
+  }
+  <p class="enter meta" style="--enter-index:4">
+    <span>{site.location}</span>
+    <span aria-hidden="true">·</span>
+    <span data-local-time data-tz={site.timezone}>{serverTime} local</span>
+    <span aria-hidden="true">·</span>
+    <span>{site.pronouns}</span>
   </p>
 </header>
+
+<style>
+  .avail {
+    display: flex;
+    align-items: center;
+    gap: var(--space-tight);
+    font-size: 0.75rem;
+    color: var(--color-ink-3);
+  }
+  .avail-dot {
+    position: relative;
+    display: flex;
+    width: 0.375rem;
+    height: 0.375rem;
+  }
+  .avail-ping {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    background-color: var(--color-measured);
+    opacity: 0.6;
+    animation: avail-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .avail-core {
+    position: relative;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: var(--color-measured);
+  }
+  @keyframes avail-ping {
+    75%,
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  .name {
+    margin-top: var(--space-group);
+    font-size: clamp(1.875rem, 1.5rem + 1.6vw, 2.375rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--color-ink);
+  }
+
+  .tagline {
+    margin-top: var(--space-row);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--color-ink-2);
+  }
+
+  .contact {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-row);
+    margin-top: var(--space-group);
+    font-size: 0.875rem;
+  }
+
+  .copy {
+    font-size: 0.6875rem;
+    color: var(--color-ink-4);
+    cursor: pointer;
+    transition: color var(--motion-hover);
+  }
+  .copy:hover {
+    color: var(--color-ink-2);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-tight);
+    margin-top: var(--space-tight);
+    font-size: 0.75rem;
+    color: var(--color-ink-4);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
