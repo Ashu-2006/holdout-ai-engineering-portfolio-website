@@ -200,16 +200,24 @@
     filter var(--stagger-dur) var(--stagger-ease);
   will-change: transform, opacity, filter;
 }
-.t-stagger-line--2 {
+/*
+ * These MUST be scoped under .js to match the specificity of the
+ * `.js .t-stagger-line` rule above. That rule sets the `transition`
+ * SHORTHAND, which resets transition-delay to 0s; at 0-1-0 these
+ * selectors lost to its 0-2-0 and every line animated at once, so
+ * the stagger silently became a single fade. Measured, not guessed:
+ * getComputedStyle reported 0s on every line.
+ */
+.js .t-stagger-line--2 {
   transition-delay: var(--stagger-stagger);
 }
-.t-stagger-line--3 {
+.js .t-stagger-line--3 {
   transition-delay: calc(var(--stagger-stagger) * 2);
 }
-.t-stagger-line--4 {
+.js .t-stagger-line--4 {
   transition-delay: calc(var(--stagger-stagger) * 3);
 }
-.t-stagger-line--5 {
+.js .t-stagger-line--5 {
   transition-delay: calc(var(--stagger-stagger) * 4);
 }
 

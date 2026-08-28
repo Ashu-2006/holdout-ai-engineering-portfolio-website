@@ -1,0 +1,233 @@
+---
+/**
+ * First-load animation.
+ *
+ * The idea: the page sets itself out the way a measured drawing does.
+ * Two vertical rules draw down at exactly the column edges the real
+ * page uses, a horizontal rule sweeps across, a mono readout counts
+ * up, and the whole overlay lifts. Nothing spins, because a spinner
+ * says "waiting" and this says "being drawn".
+ *
+ * Three constraints it is built around, in order of importance:
+ *
+ * 1. CSS-ONLY DISMISSAL. The overlay is in the HTML and removes
+ *    itself with animation-fill-mode: forwards, so it cannot get
+ *    stuck if JavaScript never runs. JS only adds the session flag
+ *    that skips it on later navigations; if that fails, the loader
+ *    plays again and still leaves. There is no state in which the
+ *    site is unreachable behind it.
+ * 2. SHORT. 900ms end to end. A loader that outstays its welcome is
+ *    worse than none, and this one is pure decoration over content
+ *    that is already server-rendered.
+ * 3. NOT ON EVERY PAGE. Session-gated, so it is a front-door moment
+ *    rather than a toll booth on internal navigation.
+ *
+ * prefers-reduced-motion removes it outright rather than shortening
+ * it, since the whole thing is motion.
+ */
+import { site } from "../../config/site";
+---
+
+<div class="loader" data-loader aria-hidden="true">
+  {/* The two column rules, at the same offsets as .sheet-rules. */}
+  <span class="loader-rule loader-rule--l"></span>
+  <span class="loader-rule loader-rule--r"></span>
+
+  {/* The horizontal sweep. */}
+  <span class="loader-sweep"></span>
+
+  <div class="loader-center">
+    <p class="loader-mark">{site.est}</p>
+    <p class="loader-read">
+      <span class="loader-count" data-loader-count>000</span>
+      <span class="loader-unit">measured</span>
+    </p>
+  </div>
+</div>
+
+<style>
+  .loader {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background-color: var(--color-ground);
+    pointer-events: none;
+    /*
+     * forwards is what makes this safe: the end state (invisible,
+     * non-interactive) persists whether or not any script runs.
+     */
+    animation: loader-out 260ms var(--ease-out) 640ms forwards;
+  }
+
+  /* Vertical rules, drawn from the top down. Positioned off the same
+     centred measure as the real grid so the loader's lines become
+     the page's lines. */
+  .loader-rule {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--color-line);
+    transform-origin: top center;
+    transform: scaleY(0);
+    animation: rule-draw 520ms var(--ease-out) forwards;
+  }
+  .loader-rule--l {
+    left: calc(50% - var(--column) / 2);
+  }
+  .loader-rule--r {
+    left: calc(50% + var(--column) / 2);
+    animation-delay: 60ms;
+  }
+  @media (max-width: 50rem) {
+    .loader-rule {
+      display: none;
+    }
+  }
+
+  /* The horizontal sweep, drawn left to right through the centre. */
+  .loader-sweep {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: var(--color-line);
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: sweep-draw 460ms var(--ease-out) 140ms forwards;
+  }
+
+  .loader-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    /* Sits on the ground so the sweep passes behind, not through. */
+    padding: 0.75rem 1.25rem;
+    background-color: var(--color-ground);
+  }
+
+  .loader-mark,
+  .loader-read {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    line-height: var(--text-label--line-height);
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: mark-in 300ms var(--ease-out) forwards;
+  }
+  .loader-mark {
+    color: var(--color-ink);
+    animation-delay: 200ms;
+  }
+  .loader-read {
+    /* ink-3, not ink-4: on the light ground ink-4 was faint enough
+       to read as a rendering artefact rather than a readout. */
+    color: var(--color-ink-3);
+    animation-delay: 300ms;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4375rem;
+  }
+  /* Tabular so the counter does not jitter as digits change. */
+  .loader-count {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-2);
+  }
+
+  /* ---- keyframes ------------------------------------------------ */
+  @keyframes rule-draw {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes sweep-draw {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes mark-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+  /* Lifts rather than fades flat: the page arrives from underneath. */
+  @keyframes loader-out {
+    from {
+      opacity: 1;
+      transform: none;
+      visibility: visible;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-1.5rem);
+      visibility: hidden;
+    }
+  }
+
+  /*
+   * Already seen this session, so skip it entirely. The attribute is
+   * set by the inline head script BEFORE first paint, so a returning
+   * navigation never flashes the overlay.
+   */
+  :global(html[data-loaded]) .loader {
+    display: none;
+  }
+
+  /* The whole component is motion, so reduced-motion removes it. */
+  @media (prefers-reduced-motion: reduce) {
+    .loader {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  /*
+   * Two jobs, both optional:
+   *  - count the readout up, purely so the mono figure is alive
+   *  - set the session flag so internal navigation skips the loader
+   *
+   * Neither is required for the overlay to leave; that is CSS.
+   */
+  const el = document.querySelector<HTMLElement>("[data-loader-count]");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (el && !reduced && !document.documentElement.hasAttribute("data-loaded")) {
+    const started = performance.now();
+    const DURATION = 620; /* lands just before the overlay lifts */
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - started) / DURATION);
+      /* Ease out so it decelerates into 100 instead of stopping dead. */
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = String(Math.round(eased * 100)).padStart(3, "0");
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  try {
+    sessionStorage.setItem("seen-loader", "1");
+  } catch {
+    /* private mode: the loader plays each load and still dismisses */
+  }
+</script>

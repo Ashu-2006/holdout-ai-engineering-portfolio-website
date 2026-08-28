@@ -139,8 +139,20 @@ const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
    * 8ms, which is 416ms: inside the reveal budget, so it never
    * holds up reading.
    */
+  /*
+   * Visible by default, so no-JS and reduced-motion get a plain
+   * grid. The wipe only exists once the figure has been revealed:
+   * previously all 364 cells started animating on page load while
+   * still below the fold, which put 364 concurrent animations in
+   * competition with the loader and the hero for the first frames.
+   */
   .heat-cell {
+    opacity: 1;
+  }
+  :global(.js) .reveal:not([data-seen="true"]) .heat-cell {
     opacity: 0;
+  }
+  :global(.js) .reveal[data-seen="true"] .heat-cell {
     animation: heat-in 260ms var(--ease-out) both;
     animation-delay: calc(var(--w) * 8ms);
   }
@@ -157,13 +169,13 @@ const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
   /* The utility opacity classes have to win over the keyframe's
      end state, so they are re-applied here at the same specificity
      the animation resolves at. */
-  .heat-cell.opacity-25 {
+  :global(.js) .reveal[data-seen="true"] .heat-cell.opacity-25 {
     animation-name: heat-in-25;
   }
-  .heat-cell.opacity-45 {
+  :global(.js) .reveal[data-seen="true"] .heat-cell.opacity-45 {
     animation-name: heat-in-45;
   }
-  .heat-cell.opacity-70 {
+  :global(.js) .reveal[data-seen="true"] .heat-cell.opacity-70 {
     animation-name: heat-in-70;
   }
   @keyframes heat-in-25 {

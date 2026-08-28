@@ -23,6 +23,7 @@ import Dock from "../components/ui/Dock.astro";
 import SiteFooter from "../components/ui/SiteFooter.astro";
 import Palette from "../components/ui/Palette.astro";
 import MachineView from "../components/ui/MachineView.astro";
+import Loader from "../components/ui/Loader.astro";
 
 interface Props {
   title?: string;
@@ -115,6 +116,14 @@ const ogImage = new URL("/mock/og.svg", Astro.site ?? site.url).href;
         if (localStorage.getItem("mode") === "machine") {
           document.documentElement.dataset.mode = "machine";
         }
+        /*
+          The loader is a front-door moment, not a toll booth. Marking
+          it here, before paint, means internal navigation never even
+          flashes the overlay.
+        */
+        if (sessionStorage.getItem("seen-loader")) {
+          document.documentElement.dataset.loaded = "true";
+        }
       } catch {}
       /*
         Marks that scripting is available. Every "starts hidden,
@@ -126,6 +135,8 @@ const ogImage = new URL("/mock/og.svg", Astro.site ?? site.url).href;
   </head>
 
   <body class="bg-ground text-ink-2 font-sans antialiased">
+    <Loader />
+
     <a href="#main" class="skip-link">Skip to content</a>
 
     <TopBar />

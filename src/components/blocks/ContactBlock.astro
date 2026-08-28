@@ -1,15 +1,24 @@
 ---
 /**
- * The contact surface, shared by the /contact page and the footer.
+ * The contact surface, shared by /contact and the footer.
+ *
+ * Built to the Figma spec (node 17:12927). The measurements that
+ * carry the design and are easy to lose:
+ *
+ *   avatar        36px, 12px radius, 2px optical drop
+ *   avatar gutter 36px + 12px gap = 48px
+ *   bubbles       capped at 503px, NOT full width. They are speech,
+ *                 and speech wants a shorter measure than a card.
+ *   cards + pills indented by the full 48px gutter, so their left
+ *                 edge lines up with the bubbles rather than with
+ *                 the avatar. This is what makes the block read as
+ *                 one conversation instead of two stacked regions.
+ *   rhythm        20px head to bubbles, 36px bubbles to cards,
+ *                 28px cards to pills
  *
  * One component on purpose: the footer teaser and the page are the
- * same conversation, and two copies would drift. `full` renders the
- * page variant (adds direct-line rows); the footer gets the compact
- * one.
- *
- * The whole stack is width-capped to the message block (--measure
- * below), per the annotation feedback: cards spanning the full
- * column read as a form, and this is meant to read as a note.
+ * same conversation, so two copies would drift. `full` adds the
+ * direct-line rows for the page.
  */
 import { Icon } from "astro-icon/components";
 import { site } from "../../config/site";
@@ -46,8 +55,8 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
 ---
 
 <div class="contact-stack">
-  {/* Opening, in his voice. */}
-  <div class="reveal flex items-start gap-3">
+  {/* Speech: avatar in the gutter, bubbles in the content column. */}
+  <div class="flex gap-3">
     <img
       src="/avatar.jpg"
       alt=""
@@ -57,57 +66,60 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
       decoding="async"
       class="mt-0.5 size-9 shrink-0 rounded-xl bg-raised object-cover"
     />
-    <div class="min-w-0 space-y-2">
-      <p class="bubble">
+    <div class="min-w-0 flex-1">
+      <p class="bubble bubble-first reveal">
         I read everything. Internships, questions about the write-ups, or
         telling me a number on this site is wrong.
       </p>
-      <p class="bubble">
-        Fastest way to reach me is email. It is
-        <span class="numeric text-ink" data-clock data-tz={site.timezone} data-seconds="false"
-          >{serverTime}</span
+      <p class="bubble reveal mt-2" style="--enter-index:1">
+        Fastest way to reach me is email. It is{" "}
+        <span
+          class="numeric text-ink"
+          data-clock
+          data-tz={site.timezone}
+          data-seconds="false">{serverTime}</span
         > here right now, so allow for the timezone.
       </p>
     </div>
   </div>
 
-  {/* Two ways in, side by side, no wider than the message block. */}
-  <div class="mt-7 grid gap-4 sm:grid-cols-2">
-    {/* The compose card: the entire card is a mailto with subject and
-        greeting prefilled, so the click lands in a half-written email
-        rather than an empty one. Mono field keys, because keys are
-        mono everywhere on this site. */}
-    <a href={mailto} class="reveal contact-card group" style="--enter-index:1">
+  {/* Cards, indented to the bubbles' left edge. */}
+  <div class="gutter mt-9 grid gap-4 sm:grid-cols-2">
+    {/* The whole card is the mailto, so the target is the card and
+        not one word inside it. */}
+    <a href={mailto} class="reveal contact-card group" style="--enter-index:2">
       <span class="contact-head">
         <span class="label">Compose</span>
         <Icon
           name="ph:arrow-up-right"
-          class="contact-arrow size-4 text-ink-4"
+          class="contact-arrow size-4 text-ink-3"
           aria-hidden="true"
         />
       </span>
-      <span class="mt-3 block space-y-1.5">
+
+      <span class="mt-3 block w-full">
         <span class="field"><span class="field-key">To</span>{site.email}</span>
-        <span class="field"><span class="field-key">Subj</span>Your portfolio</span>
-        <span class="field"><span class="field-key">From</span>you</span>
+        <span class="field mt-1.5"
+          ><span class="field-key">Subj</span>Your portfolio</span
+        >
+        <span class="field mt-1.5"><span class="field-key">From</span>you</span>
       </span>
+
       <span class="mt-3 block text-ink-3">Hi Ashutosh,</span>
       <span class="caret" aria-hidden="true"></span>
-      {/* The block's one CTA. The whole card is the link; this pill
-          names what clicking it does, in the site's single emphasis
-          shape. */}
-      <span class="pill pill-solid w-fit" style="margin-top:1.25rem">
+
+      {/* The block's one CTA, in the site's single emphasis shape. */}
+      <span class="pill pill-solid mt-5 w-fit">
         <Icon name="ph:paper-plane-tilt" class="size-4" aria-hidden="true" />
         Compose this email
       </span>
     </a>
 
-    {/* What we would even talk about: three specifics beat an
-        invitation. */}
-    <div class="reveal contact-card" style="--enter-index:2">
+    {/* Three specifics beat an invitation. */}
+    <div class="reveal contact-card" style="--enter-index:3">
       <span class="contact-head">
         <span class="label">Ask me about</span>
-        <Icon name="ph:chats-circle" class="size-4 text-ink-4" aria-hidden="true" />
+        <Icon name="ph:chats-circle" class="size-4 text-ink-3" aria-hidden="true" />
       </span>
       <ul class="bullets mt-3">
         {askAbout.map((q) => <li>{q}</li>)}
@@ -117,29 +129,28 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
 
   {
     full && (
-      <div class="reveal mt-5 grid gap-3 sm:grid-cols-2" style="--enter-index:3">
-        {/* The direct lines, for the page variant only: the footer
-            teaser stays compact. Copy buttons rather than bare text,
-            because the next step after reading an address is always
-            putting it somewhere. */}
-        <div class="contact-card">
+      <div class="gutter mt-4 grid gap-4 sm:grid-cols-2">
+        {/* Page variant only: the footer teaser stays compact. Copy
+            buttons rather than bare text, because the next step after
+            reading an address is putting it somewhere. */}
+        <div class="reveal contact-card" style="--enter-index:4">
           <span class="contact-head">
             <span class="label">Email</span>
-            <Icon name="ph:envelope-simple" class="size-4 text-ink-4" aria-hidden="true" />
+            <Icon name="ph:envelope-simple" class="size-4 text-ink-3" aria-hidden="true" />
           </span>
           <p class="numeric mt-2 text-ink">{site.email}</p>
-          <button type="button" data-copy-email={site.email} class="pill mt-3">
+          <button type="button" data-copy-email={site.email} class="pill mt-4 w-fit">
             <Icon name="ph:copy" class="size-4" aria-hidden="true" />
             <span data-copy-label>Copy address</span>
           </button>
         </div>
-        <div class="contact-card">
+        <div class="reveal contact-card" style="--enter-index:5">
           <span class="contact-head">
             <span class="label">Phone</span>
-            <Icon name="ph:phone" class="size-4 text-ink-4" aria-hidden="true" />
+            <Icon name="ph:phone" class="size-4 text-ink-3" aria-hidden="true" />
           </span>
           <p class="numeric mt-2 text-ink">{site.phone}</p>
-          <a href="tel:+918780894071" class="pill mt-3">
+          <a href="tel:+15550100" class="pill mt-4 w-fit">
             <Icon name="ph:phone-call" class="size-4" aria-hidden="true" />
             Call
           </a>
@@ -148,11 +159,11 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
     )
   }
 
-  {/* Platform rows: hug their content, flow as a row. */}
-  <ul class="mt-7 flex flex-wrap gap-2">
+  {/* Platform pills: hug their content, same gutter as the cards. */}
+  <ul class="gutter mt-7 flex flex-wrap gap-2">
     {
       connect.map((c, i) => (
-        <li class="reveal" style={`--enter-index:${4 + i}`}>
+        <li class="reveal" style={`--enter-index:${(full ? 6 : 4) + i}`}>
           <a href={c.url} rel="me noopener" target="_blank" class="connect group">
             <Icon name={c.icon} class="size-4 shrink-0 text-ink-2" aria-hidden="true" />
             <span class="text-ink">{c.label}</span>
@@ -169,33 +180,52 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
 </div>
 
 <style>
-  /* Fills its column. An inner cap left a dead gutter on the right
-     and made the cards read as a narrow form pasted into a wide
-     page; the column (768px) is already the measure. */
   .contact-stack {
     width: 100%;
   }
 
-  /* A rounded surface with a hairline, not a filled grey blob: it
-     reads as an utterance because of the radius and the stacking,
-     which is all the metaphor needs. */
+  /*
+   * The avatar gutter: 36px avatar + 12px gap. Cards and pills are
+   * pushed by the whole thing so their left edge meets the bubbles'.
+   * Below 40rem the indent goes: at that width it costs a fifth of
+   * the screen and buys nothing.
+   */
+  .gutter {
+    padding-left: 0;
+  }
+  @media (min-width: 40rem) {
+    .gutter {
+      padding-left: 3rem;
+    }
+  }
+
+  /*
+   * Speech. A surface with a hairline, not a filled grey blob: it
+   * reads as an utterance from the radius and the stacking, which is
+   * all the metaphor needs. Capped at 503px per the spec, because
+   * speech wants a shorter measure than a card does.
+   */
   .bubble {
     display: block;
+    max-width: 503px;
     border: 1px solid var(--color-line-2);
     background-color: var(--color-surface);
     border-radius: var(--radius-bubble);
-    border-top-left-radius: 0.375rem;
     padding: 0.625rem 0.875rem;
     color: var(--color-ink-2);
     text-wrap: pretty;
   }
-  .bubble + .bubble {
-    border-top-left-radius: var(--radius-bubble);
+  /* Only the first bubble notches its top-left, the way a speech
+     tail points back at the speaker. */
+  .bubble-first {
+    border-top-left-radius: 0.375rem;
   }
 
   .contact-card {
     position: relative;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     border: 1px solid var(--color-line-2);
     background-color: var(--color-surface);
     border-radius: var(--radius-card);
@@ -208,15 +238,17 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
     border-color: var(--color-ink-4);
     background-color: var(--color-sunken);
   }
-  /* Card and CTA read as one control: hovering anywhere lights both. */
+  /* Card and CTA are one control, so hovering anywhere lights both. */
   a.contact-card:hover :global(.pill-solid) {
     opacity: 0.88;
   }
+
   .contact-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+    width: 100%;
   }
   .contact-arrow {
     transition: transform var(--motion-hover);
@@ -228,8 +260,8 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
   .field {
     display: flex;
     gap: 0.5rem;
-    color: var(--color-ink-2);
     min-width: 0;
+    color: var(--color-ink-2);
   }
   .field-key {
     flex: none;
@@ -264,7 +296,6 @@ const serverTime = new Intl.DateTimeFormat("en-GB", {
     }
   }
 
-  /* Platform pills hug their content. */
   .connect {
     display: inline-flex;
     align-items: center;
