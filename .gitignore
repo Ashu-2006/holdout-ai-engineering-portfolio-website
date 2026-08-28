@@ -14,6 +14,8 @@ node_modules/
 .pnpm-store/
 
 # ---- deploy tooling -----------------------------------------------
+# Vercel's local project link (contains project + org ids).
+.vercel/
 # Wrangler's local state, caches and dev sqlite. Never deployed.
 .wrangler/
 .dev.vars

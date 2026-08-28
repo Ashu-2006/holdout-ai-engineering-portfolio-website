@@ -6,11 +6,12 @@ import icon from "astro-icon";
 // https://astro.build/config
 export default defineConfig({
   /**
-   * Required for absolute URLs in canonical links, Open Graph tags and
-   * sitemaps. Change this to the real domain before the first deploy:
-   * a wrong value here ships broken social previews.
+   * Required for absolute URLs in canonical links, Open Graph tags,
+   * sitemap.xml, robots.txt and the llms files. Currently the Vercel
+   * production URL; swap it for the custom domain when one is added,
+   * or every generated absolute URL points at the wrong host.
    */
-  site: "https://ashutoshrana.dev",
+  site: "https://holdout-ai-engineering.vercel.app",
 
   /**
    * Astro's dev toolbar is off.
