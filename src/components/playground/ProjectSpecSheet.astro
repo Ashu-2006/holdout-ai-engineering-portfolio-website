@@ -1,0 +1,419 @@
+---
+/**
+ * V2, SPEC SHEET. Master-detail: a rail of systems, one open at a time.
+ *
+ * THE ARGUMENT: the shipped accordion lets a reader open all six rows
+ * at once, which sounds like freedom and in practice produces a
+ * six-thousand-word page where nothing is comparable because nothing
+ * is aligned. Master-detail enforces one-at-a-time and pins the detail
+ * to a fixed frame, so switching between two systems moves only the
+ * values and the reader's eye stays on the field it was reading. That
+ * is the difference between reading two projects and comparing them.
+ *
+ * The detail is a SPEC SHEET, not prose: the measurement becomes a
+ * four-row definition list with the same keys every time. When every
+ * system answers the same four questions in the same four places, a
+ * missing answer is visible instead of being lost in a paragraph.
+ *
+ * ZERO JAVASCRIPT, and this is the interesting constraint.
+ *
+ * Selection is a radio group. Hidden inputs sit before the panels, and
+ * `:checked ~ .panels #panel-x` reveals the matching one. This buys
+ * three things a click handler would have to reimplement: arrow-key
+ * navigation between options (native radio behaviour), a real focus
+ * ring, and correct behaviour before hydration or with JS blocked.
+ *
+ * The cost is honest: the rail is a radio group, so it cannot deep-link
+ * to a system. If this variation ships, that is what would need adding.
+ */
+import { Icon } from "astro-icon/components";
+import { dateRange, humanDuration, maturityMeta, type Project } from "../../data/work";
+
+interface Props {
+  items: Project[];
+}
+const { items } = Astro.props;
+
+const evidenceIcon: Record<string, string> = {
+  repo: "ph:git-branch",
+  demo: "ph:cursor-click",
+  notebook: "ph:notebook",
+  model: "ph:robot",
+  writeup: "ph:article",
+};
+---
+
+{
+  items.length === 0 ? (
+    <div class="well text-center">
+      <p class="text-body text-ink">Nothing to detail.</p>
+      <p class="mt-1 text-body text-ink-3">
+        A master-detail with an empty master has no detail to pin, so the
+        frame collapses rather than showing an empty pane.
+      </p>
+    </div>
+  ) : (
+    <div class="spec rounded-card border border-line-2 bg-surface">
+      {/*
+        Inputs first, outside the visual tree, because the CSS relies on
+        them being earlier siblings of the panels. sr-only rather than
+        display:none or hidden: a display:none radio is unfocusable, and
+        the whole selection model here is keyboard-driven.
+      */}
+      {items.map((p, i) => (
+        <input
+          type="radio"
+          name="pg-spec"
+          id={`spec-${p.slug}`}
+          class="spec-input sr-only"
+          checked={i === 0}
+        />
+      ))}
+
+      <div class="grid sm:grid-cols-[13rem_1fr]">
+        {/*
+          The rail. A horizontal scroll strip below the breakpoint and a
+          vertical nav rail above it: at 360px a 13rem rail would leave
+          under 8rem for the detail, which is not a pane, it is a
+          column of broken words.
+        */}
+        <div
+          class="spec-rail spec-rail-scroll flex gap-1 overflow-x-auto border-b border-line-2 p-2 sm:flex-col sm:gap-0.5 sm:overflow-visible sm:border-r sm:border-b-0"
+          role="group"
+          aria-label="Choose a system"
+        >
+          {items.map((p) => {
+            const m = maturityMeta[p.maturity];
+            return (
+              <label
+                for={`spec-${p.slug}`}
+                data-for={p.slug}
+                class="spec-option relative flex shrink-0 cursor-pointer items-center gap-2 rounded-row px-2.5 py-2 transition-colors duration-fast ease-out"
+              >
+                {/*
+                  The selected marker is a rule, not a fill. A filled
+                  pill behind the label would be a second surface inside
+                  a surface, and this design separates by hairline and
+                  ground, never by stacking boxes.
+                */}
+                {/*
+                  No `scale-y-0` utility here on purpose. Tailwind v4
+                  emits scale-* as the INDEPENDENT `scale` property, not
+                  as `transform`, and the two compose rather than
+                  override: the checked rule's `transform: scaleY(1)`
+                  multiplied against a standing `scale: 1 0 1` still
+                  resolves to zero height, so the marker never drew.
+                  Measured, not guessed: getBoundingClientRect returned
+                  height 0 on the selected option while its computed
+                  transform read as the identity matrix.
+
+                  So the collapsed and expanded states both live in the
+                  style block, on one property.
+                */}
+                <span class="spec-mark absolute inset-y-1.5 left-0 w-px bg-ink" aria-hidden="true" />
+                <span
+                  class:list={[
+                    "size-1.5 shrink-0 rounded-full",
+                    m.tone === "live" && "bg-live",
+                    m.tone === "caution" && "bg-caution",
+                    m.tone === "muted" && "bg-ink-4",
+                  ]}
+                  aria-hidden="true"
+                />
+                <span class="spec-label truncate text-body whitespace-nowrap">
+                  {p.title}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        {/*
+          The panels. All six render; CSS shows one. Keeping them in the
+          DOM is what makes switching free, and it means the page prints
+          and serialises with every system present rather than one.
+        */}
+        <div class="spec-panels min-w-0 p-4 sm:p-5">
+          {items.map((p) => {
+            const m = maturityMeta[p.maturity];
+            return (
+              <article
+                id={`panel-${p.slug}`}
+                data-panel={p.slug}
+                class="spec-panel"
+              >
+                <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h3 class="flex items-center gap-2 text-body text-ink">
+                    <Icon
+                      name={p.icon}
+                      class="size-4 shrink-0 text-ink-3"
+                      aria-hidden="true"
+                    />
+                    {p.title}
+                  </h3>
+                  <span
+                    class:list={[
+                      "shrink-0 rounded-full px-1.5 py-px font-mono text-label uppercase",
+                      m.tone === "live" && "bg-live/15 text-live",
+                      m.tone === "caution" && "bg-caution/15 text-caution",
+                      m.tone === "muted" && "bg-ink/10 text-ink-3",
+                    ]}
+                  >
+                    {m.label}
+                  </span>
+                </div>
+
+                <p class="prose-measure mt-3 text-body text-ink-2">
+                  {p.outcome}
+                </p>
+
+                {/*
+                  THE SPEC BLOCK. Same six keys, same order, every
+                  system. Two columns above the breakpoint so the keys
+                  form a readable left edge; stacked below, because a
+                  6rem key column plus a value at 360px wraps every
+                  value onto three lines.
+
+                  Result and Baseline sit adjacent on purpose: they are
+                  the pair, and every other arrangement makes a reader
+                  hold one of them in their head.
+                */}
+                <dl class="mt-4 grid gap-x-3 gap-y-2 border-t border-line-2 pt-3.5 sm:grid-cols-[7rem_1fr]">
+                  <dt class="label">Result</dt>
+                  <dd class="text-body text-ink">
+                    <span class="numeric">{p.metric.value}</span>{" "}
+                    <span class="label label-quiet">{p.metric.label}</span>
+                  </dd>
+
+                  <dt class="label">Baseline</dt>
+                  <dd class="text-body text-ink-2">
+                    {p.metric.baseline ?? (
+                      <span class="text-caution">None recorded</span>
+                    )}
+                  </dd>
+
+                  <dt class="label">Measured on</dt>
+                  <dd class="text-body text-ink-2">{p.metric.context}</dd>
+
+                  <dt class="label">Ran</dt>
+                  <dd class="text-body text-ink-2">
+                    <span class="numeric">{dateRange(p.start, p.end)}</span>
+                    <span class="text-ink-3">
+                      {" "}
+                      ({humanDuration(p.start, p.end)})
+                    </span>
+                  </dd>
+
+                  <dt class="label">Stack</dt>
+                  <dd>
+                    <ul class="flex flex-wrap gap-1.5">
+                      {p.chips.map((c) => (
+                        <li class="chip">
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+
+                  <dt class="label">Open</dt>
+                  <dd>
+                    {p.evidence.length > 0 ? (
+                      <ul class="flex flex-wrap gap-1.5">
+                        {p.evidence.map((e) => (
+                          <li>
+                            <a
+                              href={e.url}
+                              rel="noopener"
+                              target="_blank"
+                              class="chip"
+                            >
+                              <Icon
+                                name={evidenceIcon[e.kind]}
+                                class="size-3"
+                                aria-hidden="true"
+                              />
+                              <span>{e.label}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span class="flex items-center gap-1.5 text-body text-caution">
+                        <Icon
+                          name="ph:warning"
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        Nothing public yet
+                      </span>
+                    )}
+                  </dd>
+                </dl>
+
+                <div class="mt-4 flex flex-wrap items-center gap-2">
+                  <a href={`/work/${p.slug}`} class="pill">
+                    Read the case study
+                    <Icon
+                      name="ph:arrow-right"
+                      class="size-3.5"
+                      aria-hidden="true"
+                    />
+                  </a>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+<style>
+  /*
+   * The selection engine. One rule per system would need six blocks, so
+   * instead the panels are addressed by :nth-of-type against the
+   * checked input's own position, which keeps this at a fixed size no
+   * matter how many systems exist.
+   *
+   * :has() is what makes that possible, and it is why this is CSS and
+   * not a script. Baseline in every current engine (Safari 15.4+,
+   * Chrome 105+, Firefox 121+). Older engines fall back to showing the
+   * FIRST panel only, which is a degraded page rather than a broken
+   * one: the rail still renders and the first system still reads.
+   */
+  .spec-panel {
+    display: none;
+  }
+  /*
+   * FALLBACK FIRST, then override. Without :has() support the first
+   * panel is the only visible one, so an old engine gets a readable
+   * page with one system on it rather than an empty frame.
+   *
+   * @supports then RETRACTS this rule, which is the part that is easy
+   * to get wrong: leaving it in place means the first panel is stuck
+   * visible alongside whichever one is selected, and selecting system
+   * four renders systems one and four stacked. The retraction is the
+   * whole mechanism, not a tidy-up.
+   */
+  .spec-panel:first-of-type {
+    display: block;
+  }
+
+  @supports selector(:has(*)) {
+    .spec-panel:first-of-type {
+      display: none;
+    }
+
+    .spec:has(.spec-input:nth-of-type(1):checked) .spec-panel:nth-of-type(1),
+    .spec:has(.spec-input:nth-of-type(2):checked) .spec-panel:nth-of-type(2),
+    .spec:has(.spec-input:nth-of-type(3):checked) .spec-panel:nth-of-type(3),
+    .spec:has(.spec-input:nth-of-type(4):checked) .spec-panel:nth-of-type(4),
+    .spec:has(.spec-input:nth-of-type(5):checked) .spec-panel:nth-of-type(5),
+    .spec:has(.spec-input:nth-of-type(6):checked) .spec-panel:nth-of-type(6),
+    .spec:has(.spec-input:nth-of-type(7):checked) .spec-panel:nth-of-type(7),
+    .spec:has(.spec-input:nth-of-type(8):checked) .spec-panel:nth-of-type(8) {
+      display: block;
+      /* The panel does not slide: only the VALUES change between two
+         systems, and animating the whole frame would move the fields a
+         reader is trying to hold still. A short opacity settle is
+         enough to signal that the swap happened. */
+      animation: spec-settle var(--duration-fast) var(--ease-out) both;
+    }
+  }
+
+  @keyframes spec-settle {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Rail option states, addressed the same way. */
+  .spec-option {
+    color: var(--color-ink-3);
+  }
+
+  /* The selected marker, collapsed by default and grown on selection.
+     One property, one origin, no Tailwind scale utility to compose
+     against. See the note at the markup. */
+  .spec-mark {
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform var(--motion-hover);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .spec-option:hover {
+      background-color: var(--color-sunken);
+      color: var(--color-ink-2);
+    }
+  }
+  .spec:has(.spec-input:nth-of-type(1):checked) .spec-option:nth-of-type(1),
+  .spec:has(.spec-input:nth-of-type(2):checked) .spec-option:nth-of-type(2),
+  .spec:has(.spec-input:nth-of-type(3):checked) .spec-option:nth-of-type(3),
+  .spec:has(.spec-input:nth-of-type(4):checked) .spec-option:nth-of-type(4),
+  .spec:has(.spec-input:nth-of-type(5):checked) .spec-option:nth-of-type(5),
+  .spec:has(.spec-input:nth-of-type(6):checked) .spec-option:nth-of-type(6),
+  .spec:has(.spec-input:nth-of-type(7):checked) .spec-option:nth-of-type(7),
+  .spec:has(.spec-input:nth-of-type(8):checked) .spec-option:nth-of-type(8) {
+    color: var(--color-ink);
+    background-color: var(--color-sunken);
+  }
+  .spec:has(.spec-input:nth-of-type(1):checked) .spec-option:nth-of-type(1) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(2):checked) .spec-option:nth-of-type(2) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(3):checked) .spec-option:nth-of-type(3) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(4):checked) .spec-option:nth-of-type(4) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(5):checked) .spec-option:nth-of-type(5) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(6):checked) .spec-option:nth-of-type(6) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(7):checked) .spec-option:nth-of-type(7) .spec-mark,
+  .spec:has(.spec-input:nth-of-type(8):checked) .spec-option:nth-of-type(8) .spec-mark {
+    transform: scaleY(1);
+  }
+
+  /*
+   * The focus ring has to be drawn on the LABEL, because the input it
+   * belongs to is sr-only and off-screen. Without this the rail is
+   * keyboard-navigable and completely invisible while you navigate it,
+   * which is worse than not being navigable at all.
+   */
+  .spec-input:nth-of-type(1):focus-visible ~ .grid .spec-option:nth-of-type(1),
+  .spec-input:nth-of-type(2):focus-visible ~ .grid .spec-option:nth-of-type(2),
+  .spec-input:nth-of-type(3):focus-visible ~ .grid .spec-option:nth-of-type(3),
+  .spec-input:nth-of-type(4):focus-visible ~ .grid .spec-option:nth-of-type(4),
+  .spec-input:nth-of-type(5):focus-visible ~ .grid .spec-option:nth-of-type(5),
+  .spec-input:nth-of-type(6):focus-visible ~ .grid .spec-option:nth-of-type(6),
+  .spec-input:nth-of-type(7):focus-visible ~ .grid .spec-option:nth-of-type(7),
+  .spec-input:nth-of-type(8):focus-visible ~ .grid .spec-option:nth-of-type(8) {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  .spec-rail-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .spec-rail-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Print shows every system. A printed page cannot be clicked, so
+     hiding five of six would print a page with most of the work
+     missing. */
+  @media print {
+    .spec-panel,
+    .spec:has(.spec-input:checked) .spec-panel:first-of-type {
+      display: block !important;
+      animation: none !important;
+    }
+    .spec-panel + .spec-panel {
+      margin-top: 1.5rem;
+      border-top: 1px solid var(--color-line-2);
+      padding-top: 1.5rem;
+    }
+    .spec-rail {
+      display: none !important;
+    }
+  }
+</style>

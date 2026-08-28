@@ -1,0 +1,258 @@
+---
+/**
+ * V3, POSTER WALL. A contact sheet of the artifacts.
+ *
+ * THE ARGUMENT: every project already generates a poster, and the
+ * shipped design puts all six behind a disclosure, which means the
+ * strongest visual asset on the site is invisible until someone
+ * decides to click. For a reviewer skimming twenty portfolios, the
+ * poster is the thing that makes them stop. Leading with it is not
+ * decoration, it is the hook doing its job.
+ *
+ * What keeps this from becoming a generic card grid:
+ *
+ *  1. THE CAPTION PLATE. Every poster carries a fixed plate below it
+ *     with the same three fields in the same three positions: title,
+ *     state, measurement. A wall of images with no numbers is a mood
+ *     board; the plate is what makes it evidence.
+ *  2. THE FEATURED CARD SPANS BOTH COLUMNS. A uniform grid says all
+ *     six are equal, which is a claim nobody wants to make. The span
+ *     is read from `featured`, so the emphasis comes from data rather
+ *     than from a hardcoded first child, and the last card spans too
+ *     when the parity would otherwise leave an orphan beside a hole.
+ *  3. NO SHADOW, and no lift on hover. The card is a hairline and a
+ *     surface change. Motion is the poster scaling inside its own
+ *     frame, which reads as looking closer rather than as the card
+ *     leaving the page.
+ */
+import { Icon } from "astro-icon/components";
+import { dateRange, maturityMeta, type Project } from "../../data/work";
+
+interface Props {
+  items: Project[];
+}
+const { items } = Astro.props;
+
+/* Featured first, then deployed, then newest. The span below depends
+   on the featured card being in a position where a 2-column span does
+   not leave a hole, and first is the only position that guarantees
+   that for any collection size. */
+const ordered = [...items].sort(
+  (a, b) => Number(b.featured) - Number(a.featured) || b.start.localeCompare(a.start)
+);
+
+/*
+ * THE ORPHAN. With one featured card spanning both columns, the
+ * remaining items fill a 2-column grid and an odd remainder leaves the
+ * last card sitting alone beside a hole. Six projects is exactly that
+ * case: 1 spanning + 5 = two full rows and one orphan.
+ *
+ * So the last card spans too when the remainder is odd. Derived from
+ * the collection size rather than hardcoded to index 5, which means it
+ * stays correct when a seventh project is added and the parity flips.
+ *
+ * Guarded on length > 1: with a single item, `featured` already spans
+ * it and this would apply the span twice.
+ */
+const featuredCount = ordered.filter((p) => p.featured).length;
+const orphanIndex =
+  ordered.length > 1 && (ordered.length - featuredCount) % 2 === 1
+    ? ordered.length - 1
+    : -1;
+---
+
+{
+  ordered.length === 0 ? (
+    <div class="well text-center">
+      <p class="text-body text-ink">No artifacts to show.</p>
+      <p class="mt-1 text-body text-ink-3">
+        This layout is entirely carried by the posters, so with nothing to
+        hang it says so plainly instead of drawing empty frames.
+      </p>
+    </div>
+  ) : (
+    <ul class="grid gap-3 sm:grid-cols-2">
+      {ordered.map((p, i) => {
+        const m = maturityMeta[p.maturity];
+        /* Spans two columns, and therefore has the room for the outcome
+           sentence. `featured` is the editorial reason; `orphanIndex` is
+           the geometric one. Both produce the same card. */
+        const wide = p.featured || i === orphanIndex;
+        return (
+          <li
+            class:list={[
+              "min-w-0",
+              /* min-w-0 because grid items default to min-width:auto,
+                 and a long title inside a card will otherwise push the
+                 whole column wider than its track. This is the same
+                 overflow that broke the pager cards. */
+              wide && "sm:col-span-2",
+            ]}
+            style={`--enter-index: ${i}`}
+          >
+            <a
+              href={`/work/${p.slug}`}
+              class="poster-card group/card block overflow-hidden rounded-card border border-line-2 bg-surface transition-colors duration-fast ease-out hover:border-line"
+            >
+              {/*
+                THE POSTER'S NATIVE RATIO, on every card, wide ones
+                included. 8/5 matches the 1200x750 the generator
+                authors, so object-cover crops nothing.
+
+                This started as a wider crop on the spanning cards, to
+                stop one image being twice the width AND the full height
+                of its neighbours. Both attempts were wrong for the same
+                reason: these posters are complete compositions with
+                their own title bar at the top and a caption strip at the
+                bottom, and ANY centre crop cuts one or both off. 3.55:1
+                kept 45% of the height and beheaded every one of them;
+                2.4:1 kept 67% and still took the title bar.
+
+                So a spanning card is simply a bigger poster, which for a
+                layout whose entire argument is "lead with the artifact"
+                is the version that argues for itself. The cost is a
+                taller card, and that is the honest price of not cutting
+                up someone's work.
+
+                Both axes fixed by aspect-ratio plus the width/height
+                attributes, so nothing reflows as the poster loads.
+              */}
+              <div class="poster-frame relative aspect-[8/5] overflow-hidden bg-sunken">
+                <img
+                  src={p.poster}
+                  alt={`${p.title}: ${p.metric.label} ${p.metric.value}, ${p.metric.context}`}
+                  width="1200"
+                  height="750"
+                  loading={i < 2 ? "eager" : "lazy"}
+                  decoding="async"
+                  class="poster-img absolute inset-0 size-full object-cover"
+                />
+              </div>
+
+              {/* THE CAPTION PLATE. Fixed fields, fixed order. */}
+              <div class="border-t border-line-2 px-3.5 py-3">
+                <div class="flex items-baseline justify-between gap-2">
+                  <h3 class="relative min-w-0 truncate text-body text-ink">
+                    {p.title}
+                    <span
+                      class="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-fast ease-out group-hover/card:scale-x-100"
+                      aria-hidden="true"
+                    />
+                  </h3>
+                  <span
+                    class:list={[
+                      "shrink-0 rounded-full px-1.5 py-px font-mono text-label uppercase",
+                      m.tone === "live" && "bg-live/15 text-live",
+                      m.tone === "caution" && "bg-caution/15 text-caution",
+                      m.tone === "muted" && "bg-ink/10 text-ink-3",
+                    ]}
+                  >
+                    {m.label}
+                  </span>
+                </div>
+
+                {/*
+                  WRAPS, does not truncate. Truncating this row clipped
+                  Tabular Cleanroom's plate to "539 / 3,300 LEADERBOA…",
+                  and a unit cut off mid-word is worse than a second
+                  line: it reads as a rendering fault rather than as a
+                  long label. The date takes ml-auto so it still sits
+                  right when both fit on one line, and drops below when
+                  they do not.
+                */}
+                <div class="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span>
+                    <span class="numeric text-body text-ink">
+                      {p.metric.value}
+                    </span>{" "}
+                    <span class="label label-quiet">{p.metric.label}</span>
+                  </span>
+                  <span class="numeric ml-auto shrink-0 text-label text-ink-4">
+                    {dateRange(p.start, p.end)}
+                  </span>
+                </div>
+
+                {/*
+                  The featured card has the room for one more line, so
+                  it gets the outcome sentence. The others do not, and
+                  clamping a sentence to one line in a 22rem card
+                  produces a truncated fragment that reads as broken
+                  rather than as brief.
+                */}
+                {wide && (
+                  <p class="prose-measure mt-2 text-body text-ink-2">
+                    {p.outcome}
+                  </p>
+                )}
+
+                {/* Evidence count, and the named gap when there is none. */}
+                <div class="mt-2 flex items-center gap-1.5">
+                  {p.evidence.length > 0 ? (
+                    <>
+                      <Icon
+                        name="ph:paperclip"
+                        class="size-3.5 shrink-0 text-ink-4"
+                        aria-hidden="true"
+                      />
+                      <span class="label label-quiet">
+                        {p.evidence.length} to open
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon
+                        name="ph:warning"
+                        class="size-3.5 shrink-0 text-caution"
+                        aria-hidden="true"
+                      />
+                      <span class="label" style="color: var(--color-caution)">
+                        Nothing public yet
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  )
+}
+
+<style>
+  /*
+   * The only motion: the poster scales inside a clipping frame. One
+   * transform on one compositor-only property, and the card itself
+   * never moves, so a wall of six of these does not turn into six
+   * things jostling as the pointer crosses them.
+   *
+   * scale rather than translate because there is nowhere to travel to.
+   * 1.03 is deliberately small: past about 1.05 the crop visibly loses
+   * the poster's own margins and the composition breaks.
+   */
+  .poster-img {
+    transition: transform var(--duration-moderate) var(--ease-out);
+    will-change: transform;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .poster-card:hover .poster-img {
+      transform: scale(1.03);
+    }
+  }
+
+  /* Keyboard parity. A card reachable by Tab should confirm the same
+     way it confirms on hover, or the keyboard path feels like a
+     different, worse site. */
+  .poster-card:focus-visible .poster-img {
+    transform: scale(1.03);
+  }
+
+  /* Six full-bleed posters is a lot of ink. Print gets the plates,
+     which carry the numbers, and drops the images. */
+  @media print {
+    .poster-frame {
+      display: none;
+    }
+  }
+</style>

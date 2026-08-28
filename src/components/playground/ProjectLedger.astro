@@ -1,0 +1,366 @@
+---
+/**
+ * V1, LEDGER. Six projects as one sortable table.
+ *
+ * THE ARGUMENT: a reviewer's first pass is triage, not reading. The
+ * shipped row design puts every number behind a disclosure, so
+ * comparing two projects costs two clicks and a scroll, and comparing
+ * six is not something anyone will actually do. A table is the fastest
+ * instrument for "which of these is strongest", and it makes the
+ * baseline visible in the same glance as the result, which is the
+ * comparison that matters on an ML portfolio.
+ *
+ * Three decisions worth naming:
+ *
+ *  1. A real <table> with <th scope>, because this is tabular data and
+ *     a screen reader should announce "System, Spindle Sentinel" rather
+ *     than reading six unlabelled cells. Divs styled as a grid would
+ *     look identical and be worse.
+ *  2. Sorting is progressive. The server-rendered order (deployed
+ *     first, then newest) is the order a reviewer wants anyway, so with
+ *     no JS the table is complete and correctly ordered, just fixed.
+ *     The buttons only ever reorder rows that are already there.
+ *  3. The measurement column renders FROM -> TO and computes nothing.
+ *     See metric.ts for why a signed delta would be a lie on this data.
+ */
+import { Icon } from "astro-icon/components";
+import { dateRange, maturityMeta, type Project } from "../../data/work";
+import { metricPair, maturityRank, monthIndex } from "./metric";
+
+interface Props {
+  items: Project[];
+}
+const { items } = Astro.props;
+
+/* Default order IS the useful order, so no-JS loses nothing but the
+   ability to change its mind. */
+const rows = [...items].sort(
+  (a, b) =>
+    maturityRank[a.maturity] - maturityRank[b.maturity] ||
+    b.start.localeCompare(a.start)
+);
+
+const columns = [
+  { key: "name", label: "System", align: "left" },
+  { key: "state", label: "State", align: "left" },
+  { key: "measure", label: "Baseline → measured", align: "left" },
+  { key: "evidence", label: "Open", align: "right" },
+  { key: "ran", label: "Ran", align: "right" },
+];
+---
+
+{
+  rows.length === 0 ? (
+    <div class="well text-center">
+      <p class="text-body text-ink">No systems to tabulate.</p>
+      <p class="mt-1 text-body text-ink-3">
+        A ledger with no rows is still the right shape, so it says so
+        rather than collapsing to nothing.
+      </p>
+    </div>
+  ) : (
+    /*
+      The table scrolls on its own axis rather than wrapping cells.
+      Five columns of mono figures cannot reflow into 360px without one
+      of them becoming a two-line stack, and a table where one row is
+      taller than its neighbours stops being scannable, which was the
+      entire reason to use a table.
+
+      -mx-4 px-4 lets the scroll reach the viewport edge instead of
+      stopping inside the column gutter, which reads as a clipped row.
+    */
+    <div class="ledger-scroll -mx-4 overflow-x-auto px-4">
+      {/*
+        min-w is 44rem, not 38rem. At 38 the System column collapsed to
+        the width of its longest word and "Spindle Sentinel" wrapped to
+        two lines, which makes one row taller than its neighbours and
+        destroys the single property a table is here for. Measured, not
+        guessed: 44rem is where all six titles hold one line.
+      */}
+      <table class="w-full min-w-[44rem] border-collapse text-left" data-ledger>
+        <thead>
+          <tr class="border-b border-line">
+            {columns.map((c) => (
+              <th
+                scope="col"
+                class:list={[
+                  "py-2 align-bottom",
+                  c.align === "right" && "text-right",
+                ]}
+                aria-sort={c.key === "state" ? "ascending" : "none"}
+                data-col={c.key}
+              >
+                {/*
+                  The whole header is the hit target, not just the
+                  caret. A 12px mono label with a separate 8px glyph
+                  beside it is two targets under the 24px minimum;
+                  making the button fill the cell gives one target the
+                  full height of the header row.
+                */}
+                <button
+                  type="button"
+                  data-sort={c.key}
+                  class:list={[
+                    "label group/th inline-flex w-full items-center gap-1 py-1 transition-colors duration-fast ease-out hover:text-ink",
+                    c.align === "right" && "justify-end",
+                  ]}
+                >
+                  <span>{c.label}</span>
+                  <svg
+                    viewBox="0 0 12 12"
+                    class="size-3 shrink-0 opacity-0 transition-opacity duration-fast ease-out group-hover/th:opacity-60"
+                    aria-hidden="true"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  >
+                    <path d="M6 2.5v7M3.5 7L6 9.5L8.5 7" />
+                  </svg>
+                </button>
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody class="[&>tr+tr]:border-t [&>tr+tr]:border-line-2">
+          {rows.map((p) => {
+            const m = maturityMeta[p.maturity];
+            const pair = metricPair(p);
+            return (
+              <tr
+                class="row-interactive align-middle"
+                data-name={p.title.toLowerCase()}
+                data-state={maturityRank[p.maturity]}
+                data-evidence={p.evidence.length}
+                data-ran={monthIndex(p.start)}
+              >
+                <th scope="row" class="py-2.5 pr-3 font-normal whitespace-nowrap">
+                  <a
+                    href={`/work/${p.slug}`}
+                    class="group/row inline-flex items-center gap-2 text-body text-ink"
+                  >
+                    <Icon
+                      name={p.icon}
+                      class="size-4 shrink-0 text-ink-4 transition-colors duration-fast ease-out group-hover/row:text-ink-2"
+                      aria-hidden="true"
+                    />
+                    <span class="relative">
+                      {p.title}
+                      {/* Hairline draws on hover: the row is a link,
+                          and a table of six links needs to say so
+                          without underlining all six at rest. */}
+                      <span
+                        class="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-fast ease-out group-hover/row:scale-x-100"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </a>
+                </th>
+
+                <td class="py-2.5 pr-3">
+                  <span class="inline-flex items-center gap-1.5">
+                    <span
+                      class:list={[
+                        "size-1.5 shrink-0 rounded-full",
+                        m.tone === "live" && "bg-live",
+                        m.tone === "caution" && "bg-caution",
+                        m.tone === "muted" && "bg-ink-4",
+                      ]}
+                      aria-hidden="true"
+                    />
+                    <span class="label label-quiet">{m.label}</span>
+                  </span>
+                </td>
+
+                <td class="py-2.5 pr-3 whitespace-nowrap">
+                  {pair.compact ? (
+                    <span class="inline-flex items-baseline gap-1.5">
+                      <span class="numeric text-body text-ink-4">
+                        {pair.from}
+                      </span>
+                      <span class="text-ink-4" aria-hidden="true">
+                        &#8594;
+                      </span>
+                      <span class="numeric text-body text-ink">{pair.to}</span>
+                      <span class="label label-quiet">{p.metric.label}</span>
+                    </span>
+                  ) : (
+                    /*
+                      REACHED BY REAL ROWS, not a defensive branch. Edge
+                      Ladder's baseline is "FP32 at 1.0x, 0.4pt accuracy
+                      cost" and Promptproof's is "no regression gate
+                      before this". Neither starts with a figure, so
+                      neither can render as a pair.
+
+                      The marker goes in the FROM SLOT rather than as a
+                      trailing sentence. Two reasons, and the second one
+                      is measured: it keeps the column grammar identical
+                      across all six rows so the arrow stays a single
+                      vertical landmark, and the wordier version
+                      ("no baseline figure" after the label) pushed the
+                      table's natural width about 135px past the 736px
+                      content column, so the Ran column fell off the
+                      right edge and the whole table needed a horizontal
+                      scroll ON DESKTOP. A table you have to scroll to
+                      read is not answering "in one glance", which was
+                      the only reason to build it.
+
+                      Explained in the footnote below, so it is compact
+                      without being cryptic. Both baselines are shown in
+                      full in V2 and V5.
+                    */
+                    <span class="inline-flex items-baseline gap-1.5">
+                      <span class="label label-quiet italic">n/a</span>
+                      <span class="text-ink-4" aria-hidden="true">&#8594;</span>
+                      <span class="numeric text-body text-ink">{pair.to}</span>
+                      <span class="label label-quiet">{p.metric.label}</span>
+                    </span>
+                  )}
+                </td>
+
+                <td class="py-2.5 pr-3 text-right">
+                  {p.evidence.length > 0 ? (
+                    <span class="numeric text-body text-ink-2">
+                      {p.evidence.length}
+                    </span>
+                  ) : (
+                    /* The named gap, kept from the shipped design. A
+                       blank cell here reads as missing data rather
+                       than as "there is nothing to open". */
+                    <span class="numeric text-body text-caution" title="">
+                      0
+                    </span>
+                  )}
+                </td>
+
+                <td class="numeric py-2.5 text-right text-label text-ink-3">
+                  {dateRange(p.start, p.end)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+{
+  /*
+    The footnote earns the compact "n/a" above. A marker a reader cannot
+    decode is worse than a long label, so the density has to be paid for
+    somewhere, and one line under the table is cheaper than 135px in
+    every row.
+
+    Rendered only when a row actually needs it: a footnote explaining a
+    state that is not on screen is noise.
+  */
+  items.some((p) => !metricPair(p).compact) && (
+    <p class="mt-3 text-body text-ink-3">
+      <span class="label label-quiet italic">n/a</span> in the baseline slot
+      means the baseline was recorded in words rather than as a figure, so
+      there is no number to put beside the arrow. It is shown in full in
+      the spec sheet and the claim ledger below.
+    </p>
+  )
+}
+
+<style>
+  /* The scrollbar is suppressed for the same reason as the filter
+     strip on /work: a 2px bar under a table reads as an artifact, and
+     the overflow only exists on viewports where the gesture is a
+     swipe. The table keeps its own focus ring, so keyboard users can
+     still reach and scroll it. */
+  .ledger-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .ledger-scroll::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  /*
+   * Client-side sort over the rendered rows.
+   *
+   * Reads sort keys off data attributes rather than parsing cell text.
+   * Text parsing would mean re-deriving "539 / 3,300" into a number in
+   * the browser, and the whole point of metric.ts is that this data
+   * does not reduce to one comparable number. The attributes carry
+   * what is genuinely ordinal: name, maturity rank, evidence count,
+   * start month.
+   *
+   * Direction toggles on repeat press, and aria-sort moves with it so
+   * the state is announced rather than only drawn.
+   */
+  const table = document.querySelector<HTMLTableElement>("[data-ledger]");
+
+  if (table) {
+    const body = table.tBodies[0];
+    let active = "state";
+    let dir: 1 | -1 = 1;
+
+    const keyOf = (row: HTMLElement, col: string): string | number => {
+      if (col === "name") return row.dataset.name ?? "";
+      if (col === "state") return Number(row.dataset.state ?? 0);
+      if (col === "evidence") return Number(row.dataset.evidence ?? 0);
+      if (col === "ran") return Number(row.dataset.ran ?? 0);
+      /* The measurement column is deliberately not sortable: the six
+         values are F1, a leaderboard rank, a throughput multiple and a
+         case count, which do not share an axis. The button still
+         exists for alignment, so it falls through to the current sort
+         rather than scrambling the table. */
+      return Number(row.dataset.state ?? 0);
+    };
+
+    table.querySelectorAll<HTMLButtonElement>("[data-sort]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const col = btn.dataset.sort!;
+        if (col === "measure") return;
+
+        dir = col === active ? ((dir * -1) as 1 | -1) : 1;
+        active = col;
+
+        /* Descending default for counts and dates, ascending for names
+           and maturity: "most evidence" and "most recent" are what a
+           first press means, but "A first" is what a first press on a
+           name means. */
+        const flip = col === "evidence" || col === "ran" ? -1 : 1;
+
+        const rows = Array.from(body.rows);
+        rows.sort((a, b) => {
+          const ka = keyOf(a, col);
+          const kb = keyOf(b, col);
+          if (typeof ka === "number" && typeof kb === "number") {
+            return (ka - kb) * dir * flip;
+          }
+          return String(ka).localeCompare(String(kb)) * dir * flip;
+        });
+        rows.forEach((r) => body.appendChild(r));
+
+        /*
+         * aria-sort has to be derived from dir * flip, not from dir.
+         *
+         * `flip` is what makes a first press on "Open" show the most
+         * evidence first, so with dir=1 and flip=-1 the table is sorted
+         * DESCENDING while dir alone says ascending. Announcing the
+         * opposite of what is rendered is worse than announcing
+         * nothing: a screen reader user has no other way to check.
+         */
+        const effective = dir * flip;
+        table.querySelectorAll<HTMLElement>("[data-col]").forEach((th) => {
+          th.setAttribute(
+            "aria-sort",
+            th.dataset.col === col
+              ? effective === 1
+                ? "ascending"
+                : "descending"
+              : "none"
+          );
+        });
+      });
+    });
+  }
+</script>

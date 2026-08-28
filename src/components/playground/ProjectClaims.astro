@@ -1,0 +1,240 @@
+---
+/**
+ * V5, CLAIM LEDGER. Every system stated as a falsifiable claim.
+ *
+ * THE ARGUMENT, and this is the most opinionated of the five: on an ML
+ * portfolio the project name is the least interesting field on the row.
+ * "Spindle Sentinel" tells a reviewer nothing. "0.89 macro F1 on a
+ * held-out machine, against 0.71 from a fixed threshold" tells them
+ * everything, and it is currently the fourth thing they reach.
+ *
+ * So the hierarchy inverts. The measurement takes the left column and
+ * the title becomes a caption on the claim. Each entry then reads as an
+ * assertion with its evidence attached, in the order a sceptic checks
+ * them: what is claimed, what it was measured on, what it beat, and
+ * what you can open to verify it.
+ *
+ * Two things this does that no other variation here does:
+ *
+ *  1. THE EVIDENCE IS THE PRIMARY ACTION. Everywhere else "read the
+ *     case study" is the solid pill and the repo links are quiet chips.
+ *     A claim's receipts outrank a narrative about the claim, so that
+ *     ordering flips.
+ *  2. AN UNVERIFIABLE CLAIM SAYS SO IN THE SAME WEIGHT AS A VERIFIED
+ *     ONE. Promptproof has no public evidence, and here that renders as
+ *     a full-width caution line rather than a small warning chip. If
+ *     the layout's whole premise is falsifiability, the one row nobody
+ *     can falsify has to be the loudest thing on it.
+ *
+ * NO DISCLOSURE. Six claims fully open is roughly two screens, which is
+ * the trade: a reviewer scrolls instead of clicking, and never has to
+ * decide which rows are worth opening.
+ */
+import { Icon } from "astro-icon/components";
+import { dateRange, maturityMeta, type Project } from "../../data/work";
+import { valueSize } from "./metric";
+
+interface Props {
+  items: Project[];
+}
+const { items } = Astro.props;
+
+const evidenceIcon: Record<string, string> = {
+  repo: "ph:git-branch",
+  demo: "ph:cursor-click",
+  notebook: "ph:notebook",
+  model: "ph:robot",
+  writeup: "ph:article",
+};
+
+/* Strongest claim first: deployed with a baseline outranks a prototype
+   without one, and a reviewer reading two entries and leaving should
+   have read the two best. */
+const ordered = [...items].sort(
+  (a, b) =>
+    Number(b.evidence.length > 0) - Number(a.evidence.length > 0) ||
+    Number(Boolean(b.metric.baseline)) - Number(Boolean(a.metric.baseline)) ||
+    b.start.localeCompare(a.start)
+);
+---
+
+{
+  ordered.length === 0 ? (
+    <div class="well text-center">
+      <p class="text-body text-ink">No claims on file.</p>
+      <p class="mt-1 text-body text-ink-3">
+        This layout is a list of assertions, so with nothing to assert it
+        stays empty rather than showing a frame.
+      </p>
+    </div>
+  ) : (
+    <ol class="rows border-t border-line-2">
+      {ordered.map((p) => {
+        const m = maturityMeta[p.maturity];
+        const verifiable = p.evidence.length > 0;
+        return (
+          <li class="py-5">
+            <div class="grid gap-x-5 gap-y-3 sm:grid-cols-[8rem_1fr]">
+              {/*
+                THE VALUE COLUMN. Right-aligned above the breakpoint so
+                the figures form a single optical edge down the page and
+                two claims can be compared by eye without reading a
+                word. Left-aligned below it, where an 8rem column would
+                be most of the viewport.
+              */}
+              <div class="sm:text-right">
+                <div
+                  class:list={[
+                    "numeric text-ink",
+                    /* Size steps down for long values. "539 / 3,300" at
+                       --text-title overflows 8rem and .numeric cannot
+                       wrap out of it. See metric.ts. */
+                    valueSize(p.metric.value),
+                  ]}
+                >
+                  {p.metric.value}
+                </div>
+                <div class="label mt-0.5">{p.metric.label}</div>
+                <div class="mt-2 flex items-center gap-1.5 sm:justify-end">
+                  <span
+                    class:list={[
+                      "size-1.5 shrink-0 rounded-full",
+                      m.tone === "live" && "bg-live",
+                      m.tone === "caution" && "bg-caution",
+                      m.tone === "muted" && "bg-ink-4",
+                    ]}
+                    aria-hidden="true"
+                  />
+                  <span class="label label-quiet">{m.label}</span>
+                </div>
+              </div>
+
+              {/* THE CLAIM. */}
+              <div class="min-w-0">
+                {/*
+                  The title is a caption above the claim, at label
+                  weight, because it is the least load-bearing field
+                  here. It is still the link: a reviewer who wants the
+                  narrative needs one obvious way in.
+                */}
+                <a
+                  href={`/work/${p.slug}`}
+                  class="group/claim inline-flex items-center gap-1.5"
+                >
+                  <Icon
+                    name={p.icon}
+                    class="size-3.5 shrink-0 text-ink-4 transition-colors duration-fast ease-out group-hover/claim:text-ink-2"
+                    aria-hidden="true"
+                  />
+                  <span class="label relative transition-colors duration-fast ease-out group-hover/claim:text-ink">
+                    {p.title}
+                    <span
+                      class="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-fast ease-out group-hover/claim:scale-x-100"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span class="numeric text-label text-ink-4">
+                    {dateRange(p.start, p.end)}
+                  </span>
+                </a>
+
+                <p class="prose-measure mt-1.5 text-body text-ink">
+                  {p.outcome}
+                </p>
+
+                {/*
+                  The two lines a sceptic reads next, as a definition
+                  list with mono keys. "Measured on" before "Beat"
+                  because a number's conditions decide whether the
+                  comparison means anything at all.
+                */}
+                <dl class="mt-3 grid gap-x-2.5 gap-y-1 sm:grid-cols-[6rem_1fr]">
+                  <dt class="label">Measured on</dt>
+                  <dd class="prose-measure text-body text-ink-2">
+                    {p.metric.context}
+                  </dd>
+
+                  <dt class="label">Beat</dt>
+                  <dd class="prose-measure text-body text-ink-2">
+                    {p.metric.baseline ?? (
+                      /* No project in the current data hits this, but
+                         the field is nullable, and a claim with no
+                         stated baseline is exactly the claim this
+                         layout exists to expose. */
+                      <span class="text-caution">
+                        Nothing. No baseline was recorded, so the figure
+                        above is a measurement, not an improvement.
+                      </span>
+                    )}
+                  </dd>
+                </dl>
+
+                {/*
+                  THE RECEIPTS. Primary action, and styled like one.
+                */}
+                <div class="mt-3.5">
+                  {verifiable ? (
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="label label-quiet">Check it</span>
+                      {p.evidence.map((e) => (
+                        <a
+                          href={e.url}
+                          rel="noopener"
+                          target="_blank"
+                          class="pill"
+                        >
+                          <Icon
+                            name={evidenceIcon[e.kind]}
+                            class="size-3.5"
+                            aria-hidden="true"
+                          />
+                          <span>{e.label}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    /*
+                      THE LOUD GAP. A full-width caution well, not a
+                      chip. Reached by Promptproof in the current data.
+                      Everything else on this row is a claim with a way
+                      to check it; this row is a claim without one, and
+                      the layout's credibility depends on that being
+                      the most visible thing about it.
+                    */
+                    <div class="claim-gap flex items-start gap-2 rounded-row border px-3 py-2.5">
+                      <Icon
+                        name="ph:warning"
+                        class="mt-0.5 size-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <p class="prose-measure text-body">
+                        Nothing public to check. The figure above is
+                        self-reported and cannot be verified from outside,
+                        which is the honest state of a prototype.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  )
+}
+
+<style>
+  /*
+   * The caution well. A tinted ground rather than a solid one, so it
+   * still reads as the same surface family as everything else on the
+   * page and does not become the alert box from a different design
+   * system. 8% is the point where it separates from --color-ground in
+   * both themes without the text losing contrast.
+   */
+  .claim-gap {
+    border-color: color-mix(in oklab, var(--color-caution) 30%, transparent);
+    background-color: color-mix(in oklab, var(--color-caution) 8%, transparent);
+    color: var(--color-caution);
+  }
+</style>

@@ -1,0 +1,51 @@
+---
+/**
+ * The header above each variation.
+ *
+ * A playground that shows five layouts without saying what each one is
+ * FOR is a mood board, and a mood board cannot be decided from. So
+ * every variation states the reviewer question it answers and what it
+ * gives up, and those two lines are the actual deliverable. The
+ * layout below each header is just the evidence.
+ *
+ * `cost` is required, not optional. A variation with no stated cost has
+ * not been thought about.
+ */
+interface Props {
+  id: string;
+  /** "V1", "V2". Mono, so it reads as a reference rather than a rank. */
+  index: string;
+  name: string;
+  /** The reviewer question this layout answers well. */
+  answers: string;
+  /** What it gives up to answer it. */
+  cost: string;
+}
+const { id, index, name, answers, cost } = Astro.props;
+---
+
+<section id={id} class="band scroll-mt-16">
+  <div class="column">
+    <div class="flex items-baseline gap-2.5">
+      <span class="label label-quiet">{index}</span>
+      <h2 class="band-title">{name}</h2>
+    </div>
+
+    {/*
+      A definition list, not two paragraphs. These are a fixed pair of
+      fields repeated five times, which is what a <dl> is for, and it
+      also means the mono keys align down the page and the five
+      variations become scannable against each other.
+    */}
+    <dl class="mt-3 grid gap-x-3 gap-y-1.5 sm:grid-cols-[6rem_1fr]">
+      <dt class="label">Answers</dt>
+      <dd class="prose-measure text-body text-ink-2">{answers}</dd>
+      <dt class="label">Costs</dt>
+      <dd class="prose-measure text-body text-ink-2">{cost}</dd>
+    </dl>
+  </div>
+
+  <div class="column mt-6">
+    <slot />
+  </div>
+</section>
