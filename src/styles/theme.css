@@ -63,42 +63,61 @@
   --text-display--letter-spacing: -0.025em;
 
   /* ---- ground and surface --------------------------------
-     Light is the base. Three steps, no more: elevation is a
+     Light is the base. Four steps, no more: elevation is a
      surface change plus a hairline, and there is no shadow
      scale on purpose.
 
-     Not pure white. #fcfcfb takes the glare off a full-bleed
-     page and lets --color-surface (true white) read as a step
-     up without needing a border to prove it. */
-  --color-ground: #fcfcfb;
-  --color-surface: #ffffff;
-  --color-raised: #f1f1ef;
-  --color-sunken: #f7f7f5;
+     NOTHING HERE TOUCHES PURE WHITE. --color-surface used to be
+     #ffffff and the page read as glary: a full-bleed sheet at
+     100% luminance is the brightest thing on most monitors, and
+     next to it every tinted token looked dirty rather than warm.
+     The whole ramp now sits a few points down, which keeps the
+     same four steps and the same relationships while letting the
+     paper read as paper. */
+  --color-ground: #f7f7f5;
+  --color-surface: #fbfbfa;
+  --color-raised: #eaeae6;
+  --color-sunken: #f2f2ef;
 
   /* ---- ink ------------------------------------------------
      Four steps, each with a job: titles, body, meta, and the
-     faint tier for glyphs and separators. All four clear WCAG
-     AA against --color-ground except --color-ink-4, which is
-     never used for text, only for icons and rules. */
-  --color-ink: #131313;
-  --color-ink-2: #5c5c5a;
-  --color-ink-3: #82827f;
-  --color-ink-4: #b6b6b2;
+     faint tier for glyphs and separators.
+
+     --color-ink is no longer #131313. Near-black on near-white
+     is the highest-contrast pair a screen can produce and it
+     reads as harsh rather than as crisp; at #1e1e1d the ratio
+     against ground is still 14:1, which is double what AAA asks
+     for body text.
+
+     --color-ink-3 moved the OTHER way, from #82827f to #73736f.
+     The old comment here claimed all four cleared AA except
+     ink-4. That was false: ink-3 measured 3.75:1 against the old
+     ground, under the 4.5:1 AA needs, and it is used for real
+     meta text all over the site. Darkening it clears AA properly
+     and happens to pull in the same direction as wanting more
+     contrast, not less.
+
+     ink-4 is the one genuine exception. It is never text, only
+     icons and rules, so it answers to the 3:1 non-text minimum. */
+  --color-ink: #1e1e1d;
+  --color-ink-2: #5a5a58;
+  --color-ink-3: #71716d;
+  --color-ink-4: #8c8c87;
 
   /* ---- lines ----------------------------------------------
      The hairline is the loudest thing on the page after the
      type, so it gets two weights and no more. --color-line
      rules between rows; --color-line-2 draws the full-bleed
      grid that frames the column. */
-  --color-line: rgb(0 0 0 / 0.13);
-  --color-line-2: rgb(0 0 0 / 0.07);
+  --color-line: rgb(0 0 0 / 0.15);
+  --color-line-2: rgb(0 0 0 / 0.085);
 
   /* ---- state, and only state ------------------------------
      The chrome is monochrome. Every bit of chroma on the page
      comes from the artifact posters, which is why these four
      are reserved for status and never for decoration. */
-  --color-live: #157f3d; /* deployed, passing, measured */
-  --color-caution: #9a5b06; /* draft, prototype, partial */
+  --color-live: #106b32; /* deployed, passing, measured */
+  --color-caution: #8a5205; /* draft, prototype, partial */
   --color-halt: #b3261e; /* archived, failing */
   --color-note: #1d4ed8; /* new, informational */
 
@@ -184,15 +203,15 @@
    a 1px line at all. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-ground: #0b0b0c;
-    --color-surface: #151517;
-    --color-raised: #1f1f22;
-    --color-sunken: #101012;
+    --color-ground: #131316;
+    --color-surface: #1c1c20;
+    --color-raised: #26262b;
+    --color-sunken: #17171a;
 
-    --color-ink: #f4f4f3;
-    --color-ink-2: #a0a09d;
-    --color-ink-3: #7a7a77;
-    --color-ink-4: #4d4d4a;
+    --color-ink: #e9e9e7;
+    --color-ink-2: #a3a3a0;
+    --color-ink-3: #84847f;
+    --color-ink-4: #6b6b66;
 
     --color-line: rgb(255 255 255 / 0.13);
     --color-line-2: rgb(255 255 255 / 0.07);
@@ -205,15 +224,15 @@
 }
 
 [data-theme="dark"] {
-  --color-ground: #0b0b0c;
-  --color-surface: #151517;
-  --color-raised: #1f1f22;
-  --color-sunken: #101012;
+  --color-ground: #131316;
+  --color-surface: #1c1c20;
+  --color-raised: #26262b;
+  --color-sunken: #17171a;
 
-  --color-ink: #f4f4f3;
-  --color-ink-2: #a0a09d;
-  --color-ink-3: #7a7a77;
-  --color-ink-4: #4d4d4a;
+  --color-ink: #e9e9e7;
+  --color-ink-2: #a3a3a0;
+  --color-ink-3: #84847f;
+  --color-ink-4: #6b6b66;
 
   --color-line: rgb(255 255 255 / 0.13);
   --color-line-2: rgb(255 255 255 / 0.07);
@@ -371,10 +390,10 @@ body {
     line-height: var(--text-label--line-height);
     letter-spacing: var(--text-label--letter-spacing);
     text-transform: uppercase;
-    color: var(--color-ink-3);
+    color: var(--color-ink-2);
   }
   .label-quiet {
-    color: var(--color-ink-4);
+    color: var(--color-ink-3);
   }
 
   .band-title {
@@ -391,7 +410,7 @@ body {
     font-family: var(--font-mono);
     font-size: var(--text-label);
     letter-spacing: var(--text-label--letter-spacing);
-    color: var(--color-ink-4);
+    color: var(--color-ink-3);
     vertical-align: super;
     margin-left: 0.375rem;
   }
@@ -591,7 +610,11 @@ body {
     font-family: var(--font-mono);
     font-size: var(--text-label);
     letter-spacing: var(--text-label--letter-spacing);
-    color: var(--color-ink-3);
+    /* ink-2, not ink-3: this sits on --color-raised rather than on the
+       ground, and the raised surface eats enough of the difference that
+       ink-3 measured 4.06:1 here. A key cap nobody can read is worse
+       than no key cap. */
+    color: var(--color-ink-2);
   }
 
   /* Copy confirmation, swapped in place. */

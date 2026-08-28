@@ -80,7 +80,7 @@ const machineDoc = machineResume();
             {site.name}
           </h1>
           <p class="mt-2 font-mono text-body text-ink-2">
-            {site.role} <span class="text-ink-4">/</span> {site.studying}
+            {site.role} <span class="text-ink-3">/</span> {site.studying}
           </p>
         </div>
 
@@ -129,12 +129,12 @@ const machineDoc = machineResume();
                 </h3>
                 <p class="numeric text-label text-ink-3">
                   {dateRange(role.start, role.end)}
-                  <span class="text-ink-4">
+                  <span class="text-ink-3">
                     {" "}({humanDuration(role.start, role.end)})
                   </span>
                 </p>
               </div>
-              <p class="numeric mt-0.5 text-label text-ink-4">
+              <p class="numeric mt-0.5 text-label text-ink-3">
                 {role.employment} / {group.location} / {group.mode}
               </p>
               <ul class="mt-1.5 space-y-1">
@@ -183,7 +183,7 @@ const machineDoc = machineResume();
               which scrolled the whole resume sideways on a phone.
               This is prose in a mono face, so it wraps.
             */}
-            <p class="mt-1 font-mono text-label text-ink-4">
+            <p class="mt-1 font-mono text-label text-ink-3">
               {p.chips.join(" / ")}
             </p>
           </div>
@@ -286,7 +286,7 @@ const machineDoc = machineResume();
             <a href={p.url} class="link-ref" rel="noopener">
               {p.platform} / {p.handle}
             </a>
-            <span class="font-mono text-label text-ink-4">
+            <span class="font-mono text-label text-ink-3">
               {p.stat}
             </span>
           </li>
