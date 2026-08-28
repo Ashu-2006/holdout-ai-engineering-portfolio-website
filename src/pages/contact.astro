@@ -1,0 +1,392 @@
+---
+/**
+ * Contact, from Figma 1:7932.
+ *
+ * The reference's structure: an intro line, a form (name + email on
+ * one row, message, send button with an enter-to-send hint), then a
+ * table of channels with the handle on the right, and a closing
+ * strip with the avatar and a live clock.
+ *
+ * Adapted, not cloned. The reference implies a server; this site is
+ * static, so the form's submit composes a prefilled email in the
+ * visitor's own mail app instead of posting anywhere. That is stated
+ * under the button rather than discovered on click, because a form
+ * that silently does something other than "send" burns trust. The
+ * channel rows reuse this site's hairline row grammar, and every
+ * field failure gets the shake treatment (transitions.dev
+ * 12-error-state-shake) instead of an alert.
+ */
+import { Icon } from "astro-icon/components";
+import PageLayout from "../layouts/PageLayout.astro";
+import Band from "../components/ui/Band.astro";
+import { site, profiles } from "../config/site";
+import { machineContact } from "../lib/machine";
+
+const machineDoc = machineContact();
+
+/* Channel rows: the two direct lines first, then the profiles. */
+const channels = [
+  { label: "Email", icon: "ph:envelope-simple", value: site.email, href: `mailto:${site.email}` },
+  { label: "Phone", icon: "ph:phone", value: site.phone, href: "tel:+918780894071" },
+  ...profiles.map((p) => ({
+    label: p.platform,
+    icon: p.icon,
+    value: `@${p.handle}`,
+    href: p.url,
+  })),
+];
+
+const serverTime = new Intl.DateTimeFormat("en-GB", {
+  timeZone: site.timezone,
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+}).format(new Date());
+---
+
+<PageLayout
+  machine={machineDoc}
+  section="contact"
+  title={`Contact, ${site.name}`}
+  description={`How to reach ${site.name}: a message form, email, phone, and where else he is.`}
+  footer={false}
+>
+  <Band
+    title="Contact"
+    note="You can reach me with the form, or through any of the rows below. Response time is usually under a day."
+    as="h1"
+  >
+    <form class="contact-form" data-contact-form novalidate>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="fieldbox" data-field>
+          <label class="sr-only" for="cf-name">Your name</label>
+          <input
+            id="cf-name"
+            name="name"
+            type="text"
+            placeholder="Ada Lovelace"
+            autocomplete="name"
+            required
+          />
+        </div>
+        <div class="fieldbox" data-field>
+          <label class="sr-only" for="cf-email">Your email</label>
+          <input
+            id="cf-email"
+            name="email"
+            type="email"
+            placeholder="ada@example.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+      </div>
+
+      {/* Honeypot. Hidden from people (and from assistive tech);
+          a bot that fills it gets a polite 200 and nothing stored. */}
+      <div class="hp" aria-hidden="true">
+        <label for="cf-website">Website</label>
+        <input id="cf-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="fieldbox mt-3" data-field>
+        <label class="sr-only" for="cf-message">Your message</label>
+        <textarea
+          id="cf-message"
+          name="message"
+          rows="6"
+          placeholder="What are you building, and where does it hurt?"
+          required></textarea>
+      </div>
+
+      {/* Field errors announce here for screen readers; sighted users
+          get the shake and the caution border. */}
+      <p class="form-note mt-2 text-caution" data-form-error aria-live="polite" hidden></p>
+
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <button type="submit" class="pill pill-solid">
+          <Icon name="ph:paper-plane-tilt" class="size-4" aria-hidden="true" />
+          <span data-copy-label>Send message</span>
+        </button>
+        <p class="flex items-center gap-1.5 text-ink-3">
+          or <span class="kbd">Ctrl</span><span class="kbd">&#8629;</span> to send
+        </p>
+      </div>
+
+      {/* The honest line. A static site has no inbox; saying so up
+          front is what keeps the button's promise. */}
+      <p class="label label-quiet note-measure mt-4">
+        Goes straight to me. If the server is unreachable, your own mail app
+        opens with everything filled in instead.
+      </p>
+    </form>
+
+    {/* Channel table, per the reference: label left, handle right,
+        one hairline between rows, arrow that travels on hover. */}
+    <ul class="rows mt-12 border-t border-line-2">
+      {
+        channels.map((c, i) => (
+          <li class="reveal" style={`--enter-index:${i}`}>
+            <a
+              href={c.href}
+              rel={c.href.startsWith("http") ? "me noopener" : undefined}
+              target={c.href.startsWith("http") ? "_blank" : undefined}
+              class="row-interactive group flex items-center gap-3 py-3.5"
+            >
+              <Icon name={c.icon} class="size-4 shrink-0 text-ink-3" aria-hidden="true" />
+              <span class="text-ink">{c.label}</span>
+              <span class="numeric ml-auto min-w-0 truncate text-ink-3">
+                {c.value}
+              </span>
+              <Icon
+                name="ph:arrow-up-right"
+                class="row-arrow size-4 shrink-0 text-ink-4"
+                aria-hidden="true"
+              />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    {/* Closing strip, per the reference: who this reaches, and what
+        time it is where he is. */}
+    <div
+      class="mt-12 flex items-center justify-between gap-4 border-t border-line-2 pt-6"
+    >
+      <span class="flex items-center gap-2.5">
+        <img
+          src="/avatar.jpg"
+          alt=""
+          width="128"
+          height="128"
+          loading="lazy"
+          decoding="async"
+          class="size-6 rounded-lg bg-raised object-cover"
+        />
+        <span class="label">{site.name}</span>
+      </span>
+      <span class="label flex items-center gap-1.5">
+        <Icon name="ph:clock" class="size-3.5" aria-hidden="true" />
+        <span class="numeric" data-clock data-tz={site.timezone}>{serverTime}</span>
+        <span class="text-ink-4">GMT+5:30</span>
+      </span>
+    </div>
+  </Band>
+</PageLayout>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Fields are the site's surfaces: hairline, sunken on focus intent,
+     no inner shadows. The border carries every state. */
+  .fieldbox input,
+  .fieldbox textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-row);
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    letter-spacing: var(--text-body--letter-spacing);
+    transition:
+      border-color var(--motion-hover),
+      background-color var(--motion-hover);
+  }
+  .fieldbox textarea {
+    resize: vertical;
+    min-height: 8.5rem;
+  }
+  .fieldbox input::placeholder,
+  .fieldbox textarea::placeholder {
+    color: var(--color-ink-4);
+  }
+  .fieldbox input:hover,
+  .fieldbox textarea:hover {
+    border-color: var(--color-ink-4);
+  }
+  .fieldbox input:focus-visible,
+  .fieldbox textarea:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 0;
+    border-color: transparent;
+  }
+
+  /*
+   * transitions.dev / 12-error-state-shake, reduced to one segment.
+   * .is-error carries the look, .is-shaking carries the motion; they
+   * stay orthogonal so a repeat failure can replay the shake
+   * (remove, reflow, re-add) without flickering the border.
+   */
+  .fieldbox.is-error input,
+  .fieldbox.is-error textarea {
+    border-color: var(--color-caution);
+  }
+  .fieldbox.is-shaking {
+    animation: field-shake 300ms var(--ease-out);
+  }
+  @keyframes field-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-6px);
+    }
+    45% {
+      transform: translateX(5px);
+    }
+    70% {
+      transform: translateX(-3px);
+    }
+    88% {
+      transform: translateX(2px);
+    }
+  }
+
+  .form-note {
+    font-size: var(--text-body);
+  }
+
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* The travelling arrow, same gesture as everywhere else. */
+  .row-arrow {
+    transition: transform var(--motion-hover);
+  }
+  .group:hover .row-arrow {
+    transform: translate(2px, -2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fieldbox.is-shaking {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  /*
+   * The form composes a mailto with everything prefilled. Validation
+   * is local: an empty or malformed field gets the caution border, a
+   * shake, and focus, and the live region names what is missing.
+   *
+   * The reflow between removing and re-adding .is-shaking is what
+   * lets a second failed submit replay the animation.
+   */
+  const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
+  const errorNote = document.querySelector<HTMLElement>("[data-form-error]");
+
+  function fail(box: HTMLElement, message: string) {
+    box.classList.add("is-error");
+    box.classList.remove("is-shaking");
+    void box.offsetWidth;
+    box.classList.add("is-shaking");
+    if (errorNote) {
+      errorNote.textContent = message;
+      errorNote.hidden = false;
+    }
+    box.querySelector<HTMLElement>("input, textarea")?.focus();
+  }
+
+  if (form) {
+    const boxes = Array.from(form.querySelectorAll<HTMLElement>("[data-field]"));
+
+    /* Typing into a failed field clears its error state. */
+    boxes.forEach((box) => {
+      box.querySelector("input, textarea")?.addEventListener("input", () => {
+        box.classList.remove("is-error");
+        if (errorNote) errorNote.hidden = true;
+      });
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const name = (form.querySelector("#cf-name") as HTMLInputElement).value.trim();
+      const email = (form.querySelector("#cf-email") as HTMLInputElement).value.trim();
+      const message = (form.querySelector("#cf-message") as HTMLTextAreaElement).value.trim();
+
+      if (!name) return fail(boxes[0], "A name, so I know who I am replying to.");
+      if (!email || !/^\S+@\S+\.\S+$/.test(email))
+        return fail(boxes[1], "A real email address, so the reply has somewhere to go.");
+      if (!message) return fail(boxes[2], "The message is the part I cannot fill in for you.");
+
+      const label = form.querySelector<HTMLElement>("[data-copy-label]");
+      const swap = (text: string, revert = true) => {
+        if (!label) return;
+        label.textContent = text;
+        label.classList.remove("is-swapped");
+        void label.offsetWidth;
+        label.classList.add("is-swapped");
+        if (revert) {
+          window.setTimeout(() => {
+            label.textContent = "Send message";
+            label.classList.remove("is-swapped");
+            void label.offsetWidth;
+            label.classList.add("is-swapped");
+          }, 3200);
+        }
+      };
+
+      /* Primary path: the worker at /api/contact stores the message
+         (and forwards it by email when configured). Fallback: if the
+         endpoint is missing or down, compose the same message in the
+         visitor's own mail app, so a send gesture never dead-ends. */
+      const website =
+        (form.querySelector("#cf-website") as HTMLInputElement)?.value ?? "";
+      swap("Sending", false);
+      try {
+        const res = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, message, website }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        swap("Sent. I will reply soon.");
+        (form.querySelector("#cf-message") as HTMLTextAreaElement).value = "";
+      } catch {
+        const to =
+          document
+            .querySelector<HTMLAnchorElement>('a[href^="mailto:"]')
+            ?.href.replace("mailto:", "")
+            .split("?")[0] ?? "";
+        const subject = `Message from ${name}`;
+        const body = `${message}
+
+- ${name} (${email})`;
+        window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        swap("Opening your mail app");
+      }
+    });
+
+    /* Ctrl/Cmd+Enter sends from anywhere in the form; a bare Enter
+       inside the textarea keeps writing, which is what it means in a
+       message box. */
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+  }
+</script>

@@ -1,0 +1,223 @@
+---
+/**
+ * Hero.
+ *
+ * Structure follows the reference you pointed at: avatar, name at a
+ * modest size, role, two lines of bio, then a row of pills. The
+ * previous version led with a 46px name over a large drawing, which
+ * spent the whole first screen on saying who he is and none of it on
+ * what he does.
+ *
+ * What is ours rather than borrowed: the mono tagline line and the
+ * availability dot that only goes green while the copy says he is
+ * looking. No backdrop drawing: the air is the backdrop.
+ */
+import { Icon } from "astro-icon/components";
+import { site } from "../../config/site";
+
+---
+
+<section class="band hero-band relative">
+
+  <div class="column">
+    <div class="t-stagger">
+      {/*
+        Two overlapping squircles, as in the reference: the real
+        portrait with the monogram mark tucked behind it.
+      */}
+      <div class="t-stagger-line t-stagger-line--1 flex items-center">
+        <span class="avatar-stack">
+          <img
+            src="/avatar.jpg"
+            alt={`${site.name}`}
+            width="112"
+            height="112"
+            class="avatar avatar-photo object-cover"
+            fetchpriority="high"
+            decoding="async"
+          />
+          <img
+            src="/mock/avatar.svg"
+            alt=""
+            width="112"
+            height="112"
+            class="avatar avatar-mark"
+            decoding="async"
+          />
+        </span>
+      </div>
+
+      <h1
+        class="t-stagger-line t-stagger-line--2 mt-4 text-display font-medium text-ink"
+      >
+        {site.name}
+        {/*
+          Pronunciation, revealed on demand. A name people mispronounce
+          is a small real problem; the phonetic spelling is the honest
+          fix, since a synthesised recording would not be his voice.
+        */}
+        <button
+          type="button" data-pronounce
+          class="phon ml-1 inline-flex translate-y-[-2px] items-center gap-1.5 rounded-md px-1 align-middle text-ink-4 transition-colors duration-fast ease-out hover:text-ink"
+          aria-expanded="false"
+          aria-label="How to pronounce this name"
+        >
+          <Icon name="ph:speaker-high" class="size-4" aria-hidden="true" />
+          <span class="phon-text label normal-case">{site.pronounce}</span>
+        </button>
+      </h1>
+
+      <p class="t-stagger-line t-stagger-line--3 mt-1 text-ink-2">
+        {site.role}
+        <span class="text-ink-4"> / </span>
+        <span class="font-mono">{site.tagline}</span>
+      </p>
+
+      <p class="t-stagger-line t-stagger-line--4 prose-measure mt-3 text-ink-2">
+        I build {site.builds}. Every project here states its baseline and the
+        conditions under which it fails.
+      </p>
+
+      <p
+        class="t-stagger-line t-stagger-line--4 mt-3 flex items-center gap-2 text-ink-2"
+      >
+        <span class="status-dot" aria-hidden="true"></span>
+        {site.availability}
+      </p>
+
+      <div
+        class="t-stagger-line t-stagger-line--5 mt-6 flex flex-wrap items-center gap-2"
+      >
+        {/* Resume is the primary action: for the audience this site is
+            for, "show me the resume" is the job to be done, and email
+            lives one click away on /contact and in the dock. */}
+        <a href="/resume" class="pill pill-solid">
+          <Icon name="ph:read-cv-logo" class="size-4" aria-hidden="true" />
+          Resume
+        </a>
+        <a href="https://github.com/" rel="noopener" target="_blank" class="pill">
+          <Icon name="ph:github-logo" class="size-4" aria-hidden="true" />
+          GitHub
+        </a>
+        <button type="button" data-copy-email={site.email} class="pill">
+          <Icon name="ph:copy" class="size-4" aria-hidden="true" />
+          <span data-copy-label>Copy email</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* The hero opens the page, so it gets air no other band gets:
+     roughly double the section rhythm above, half again below. */
+  .hero-band {
+    padding-block: 4.5rem 3rem;
+  }
+  @media (min-width: 40rem) {
+    .hero-band {
+      padding-block: 6.5rem 3.5rem;
+    }
+  }
+
+  /* ---- avatar ------------------------------------------------ */
+  .avatar-stack {
+    display: inline-flex;
+    align-items: center;
+  }
+  .avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1.125rem;
+    display: block;
+    background-color: var(--color-raised);
+  }
+  /* The mark tucks behind the portrait and peeks out, which is what
+     makes the pair read as one object rather than two icons. */
+  .avatar-mark {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.75rem;
+    margin-left: -0.875rem;
+    /* A ring, not a shadow: the ground-coloured outline is what lets
+       the mark read as tucked behind the portrait. */
+    outline: 3px solid var(--color-ground);
+    position: relative;
+    z-index: -1;
+    transition: transform var(--motion-disclose);
+  }
+  .avatar-stack:hover .avatar-mark {
+    transform: translateX(4px) rotate(6deg);
+  }
+
+  
+
+  /* ---- pronunciation ----------------------------------------- */
+  .phon-text {
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 0;
+    transition:
+      max-width var(--motion-disclose),
+      opacity var(--motion-disclose);
+  }
+  .phon[aria-expanded="true"] .phon-text,
+  .phon:hover .phon-text,
+  .phon:focus-visible .phon-text {
+    max-width: 16rem;
+    opacity: 1;
+  }
+
+  /* ---- availability ------------------------------------------ */
+  .status-dot {
+    position: relative;
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 999px;
+    background-color: var(--color-live);
+  }
+  /* The pulse is a bordered ring scaling out, not a spreading
+     box-shadow: same signal, no shadow language, and transform +
+     opacity stay on the compositor. The only looping animation on
+     the site, well under the 3Hz flash threshold. */
+  .status-dot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 999px;
+    border: 1px solid var(--color-live);
+    animation: pulse 2.4s var(--ease-in-out) infinite;
+  }
+  @keyframes pulse {
+    0% {
+      opacity: 0.8;
+      transform: scale(0.7);
+    }
+    70%,
+    100% {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status-dot::after {
+      animation: none;
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  /* Toggle keeps the phonetic spelling open on touch, where there is
+     no hover to hold it. */
+  document.querySelectorAll<HTMLElement>("[data-pronounce]").forEach((b) => {
+    b.addEventListener("click", () => {
+      b.setAttribute(
+        "aria-expanded",
+        b.getAttribute("aria-expanded") === "true" ? "false" : "true"
+      );
+    });
+  });
+</script>

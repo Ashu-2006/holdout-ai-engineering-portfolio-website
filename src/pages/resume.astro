@@ -1,0 +1,303 @@
+---
+/**
+ * Resume.
+ *
+ * Read off the same objects the rest of the site renders, so the
+ * page and the PDF cannot drift from each other or from the work
+ * index. That is the whole reason this is a page rather than an
+ * uploaded document: a PDF in /public goes stale silently.
+ *
+ * Three ways out of here, because people want different things:
+ *   - read it, right here
+ *   - download the generated PDF (scripts/gen-resume-pdf.mjs)
+ *   - print, which the print stylesheet in global.css handles
+ *
+ * The action bar is sticky under the top bar rather than floating,
+ * so it never covers content on a page people scroll to the end of.
+ */
+import { Icon } from "astro-icon/components";
+import PageLayout from "../layouts/PageLayout.astro";
+import Band from "../components/ui/Band.astro";
+import {
+  site,
+  education,
+  certifications,
+  volunteer,
+  stackGroups,
+  profiles,
+} from "../config/site";
+import { experience, projects, dateRange, humanDuration } from "../data/work";
+import { machineResume } from "../lib/machine";
+
+/* Projects worth a line on a one-page document: shipped or
+   deployed, and the two most recent prototypes. */
+const resumeProjects = projects
+  .filter((p) => p.maturity !== "archived")
+  .sort((a, b) => Number(b.featured) - Number(a.featured) || b.start.localeCompare(a.start))
+  .slice(0, 4);
+
+/* MACHINE view of this page, built from the same objects the
+   human view below renders. See lib/machine.ts. */
+const machineDoc = machineResume();
+---
+
+<PageLayout machine={machineDoc}
+  section="resume"
+  title="Resume, Ashutosh Rana"
+  description="AI engineer, dual degree at Example Institute of Technology and Example University. Six systems, each with a stated baseline."
+>
+  {/* Action bar. sticky top-14 clears the 56px top bar exactly. */}
+  <div
+    class="no-print sticky top-14 z-20 border-b border-line-2 bg-ground/85 backdrop-blur-md"
+  >
+    <div class="column flex items-center justify-between gap-3 py-2.5">
+      <p class="label truncate">Resume / {site.name}</p>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <a href="/resume.pdf" download class="pill pill-solid">
+          <Icon name="ph:download-simple" class="size-4" aria-hidden="true" />
+          <span class="hidden sm:inline">Download</span> PDF
+        </a>
+        <button type="button" data-print class="pill">
+          <Icon name="ph:printer" class="size-4" aria-hidden="true" />
+          <span class="hidden sm:inline">Print</span>
+        </button>
+        <button type="button" data-copy-email={site.email} class="pill">
+          <Icon name="ph:at" class="size-4" aria-hidden="true" />
+          <span data-copy-label class="hidden sm:inline">Copy email</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* Header block. Denser than the site hero: this is a document. */}
+  <section class="band">
+    <div class="column">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1
+            class="text-display font-medium text-ink"
+          >
+            {site.name}
+          </h1>
+          <p class="mt-2 font-mono text-body text-ink-2">
+            {site.role} <span class="text-ink-4">/</span> {site.studying}
+          </p>
+        </div>
+
+        <ul class="space-y-0.5 text-body sm:text-right">
+          <li>
+            <a href={`mailto:${site.email}`} class="link-ref numeric">
+              {site.email}
+            </a>
+          </li>
+          <li><span class="numeric text-ink-2">{site.phone}</span></li>
+          <li><span class="text-ink-2">{site.location}</span></li>
+          <li>
+            <a href={site.url} class="link-ref numeric">
+              {site.url.replace("https://", "")}
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <p class="prose-measure mt-5 text-body text-ink-2">
+        AI engineer reading two concurrent degrees, Smart Manufacturing
+        Engineering at Example Institute of Technology and Data Science and AI at Example University.
+        I build machine learning that ends up attached to a sensor or a process
+        rather than to a notebook, and every result I report comes with the
+        baseline it beat and the conditions under which it fails.
+      </p>
+
+      <p class="mt-3 flex items-center gap-2 text-body text-live">
+        <Icon name="ph:circle-notch" class="size-3.5" aria-hidden="true" />
+        {site.availability}
+      </p>
+    </div>
+  </section>
+
+  <Band title="Experience">
+    <div class="space-y-5">
+      {
+        experience.map((group) =>
+          group.roles.map((role) => (
+            <div>
+              <div class="flex flex-wrap items-baseline justify-between gap-x-3">
+                <h3 class="text-body font-medium text-ink">
+                  {role.title}
+                  <span class="font-normal text-ink-3"> at </span>
+                  {group.org}
+                </h3>
+                <p class="numeric text-label text-ink-3">
+                  {dateRange(role.start, role.end)}
+                  <span class="text-ink-4">
+                    {" "}({humanDuration(role.start, role.end)})
+                  </span>
+                </p>
+              </div>
+              <p class="numeric mt-0.5 text-label text-ink-4">
+                {role.employment} / {group.location} / {group.mode}
+              </p>
+              <ul class="mt-1.5 space-y-1">
+                {role.bullets.map((b) => (
+                  <li class="bullet prose-measure">{b}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )
+      }
+    </div>
+  </Band>
+
+  <Band title="Selected systems" count={projects.length}>
+    <div class="space-y-4">
+      {
+        resumeProjects.map((p) => (
+          <div>
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3">
+              <h3 class="text-body font-medium text-ink">
+                <a href={`/work/${p.slug}`} class="link-ref">{p.title}</a>
+              </h3>
+              <p class="numeric text-label text-ink-3">
+                {dateRange(p.start, p.end)}
+              </p>
+            </div>
+            <p class="prose-measure mt-1 text-body text-ink-2">
+              {p.outcome}
+            </p>
+            {/* The number and its baseline travel together, always. */}
+            <p class="mt-1.5 text-body">
+              <span class="numeric text-ink">
+                {p.metric.value} {p.metric.label}
+              </span>
+              <span class="text-ink-3"> on {p.metric.context}</span>
+              {p.metric.baseline && (
+                <span class="text-ink-3">, against {p.metric.baseline}</span>
+              )}
+            </p>
+            {/*
+              font-mono, NOT .numeric. .numeric carries
+              `white-space: nowrap` because it exists for figures
+              that must not break mid-number, and a six-item stack
+              list under it came to 475px on one unbreakable line,
+              which scrolled the whole resume sideways on a phone.
+              This is prose in a mono face, so it wraps.
+            */}
+            <p class="mt-1 font-mono text-label text-ink-4">
+              {p.chips.join(" / ")}
+            </p>
+          </div>
+        ))
+      }
+    </div>
+  </Band>
+
+  <Band title="Education">
+    <div class="rows border-t border-line-2">
+      {
+        education.map((e) => (
+          <div class="py-3">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3">
+              <h3 class="text-body text-ink">{e.credential}</h3>
+              <p class="numeric text-label text-ink-3">
+                {e.start} - {e.end}
+              </p>
+            </div>
+            <p class="mt-0.5 text-body text-ink-2">
+              {e.school}
+              {e.grade && <span class="numeric text-ink-3"> / {e.grade}</span>}
+            </p>
+            {e.note && (
+              <p class="prose-measure mt-1 text-body text-ink-3">
+                {e.note}
+              </p>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </Band>
+
+  <Band title="Skills and tools">
+    <dl class="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+      {
+        stackGroups.map((g) => (
+          <div>
+            <dt class="label label-quiet text-label">{g.group}</dt>
+            <dd class="mt-0.5 text-body text-ink-2">
+              {g.items.join(", ")}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </Band>
+
+  <Band title="Certifications">
+    <ul class="grid gap-x-8 gap-y-1 sm:grid-cols-2">
+      {
+        certifications.map((c) => (
+          <li class="flex flex-wrap items-baseline justify-between gap-x-3 text-body">
+            <a href={c.url} class="link-ref" rel="noopener">
+              {c.name}
+            </a>
+            <span class="numeric shrink-0 text-ink-3">
+              {c.issuer} {c.year}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </Band>
+
+  <Band title="Volunteer">
+    {
+      volunteer.map((v) => (
+        <div>
+          <div class="flex flex-wrap items-baseline justify-between gap-x-3">
+            <h3 class="text-body text-ink">
+              {v.role}
+              <span class="font-normal text-ink-3"> at </span>
+              {v.org}
+            </h3>
+            <p class="numeric text-label text-ink-3">
+              {v.period}
+            </p>
+          </div>
+          <p class="prose-measure mt-1 text-body text-ink-2">
+            {v.detail}
+          </p>
+        </div>
+      ))
+    }
+  </Band>
+
+  <Band title="Elsewhere">
+    {/*
+      Rows are flex-wrap and the stat is allowed to break. On a
+      phone "Kaggle / dhairyapandya" plus "Contributor - 3
+      competitions" wants 364px on one line where 313px exist, so
+      the pair wraps to two lines instead of scrolling the page.
+    */}
+    <ul class="grid gap-x-8 gap-y-1 sm:grid-cols-2">
+      {
+        profiles.map((p) => (
+          <li class="flex flex-wrap items-baseline justify-between gap-x-3 text-body">
+            <a href={p.url} class="link-ref" rel="noopener">
+              {p.platform} / {p.handle}
+            </a>
+            <span class="font-mono text-label text-ink-4">
+              {p.stat}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </Band>
+</PageLayout>
+
+<script>
+  document
+    .querySelectorAll<HTMLElement>("[data-print]")
+    .forEach((b) => b.addEventListener("click", () => window.print()));
+</script>

@@ -1,45 +1,214 @@
-/** Single source of truth for identity. Everything else is content. */
+/**
+ * Single source of truth for identity.
+ *
+ * Everything with a name, a number or a date lives here or in a
+ * content collection. No component hardcodes a fact, so the resume
+ * page and the site cannot drift apart: they read the same objects.
+ *
+ * EVERYTHING BELOW IS PLACEHOLDER unless you replaced it. Education,
+ * certifications, volunteer work, metrics, dates, systems, posts and
+ * testimonials are invented to exercise the layout: they are not
+ * claims about anyone. Names like "Example University" mark the
+ * fields most in need of editing.
+ *
+ * Start here, then src/data/work.ts, then src/content/.
+ */
+
 export const site = {
   name: "Ashutosh Rana",
+  /** The phonetic spelling the hero renders next to the name. */
+  pronounce: "/uh-SHOO-tohsh RAH-nah/",
   role: "AI Engineer",
-  /** Completes the sentence "I build …" */
-  builds: "retrieval systems and agent pipelines that hold up past the demo",
-  availability: "Open to AI engineering roles",
+  /** Completes the sentence "I build ..." */
+  builds:
+    "machine learning that has to survive contact with a factory floor, not just a notebook",
+  tagline: "Measure it, or it did not happen.",
+  availability: "Open to AI/ML internships for Summer 2027",
+  status: "available",
   location: "India",
   timezone: "Asia/Kolkata",
   pronouns: "he/him",
   email: "ashutosh@armoriq.io",
-  url: "https://example.dev",
-  /**
-   * Tier 1 recognition shortcut. A recruiter pattern-matches a company
-   * name faster than they parse a metric, so this sits above the numbers.
-   * With no name brands, substitute outcome scale instead.
-   */
-  proofRow: {
-    label: "Previously at",
-    items: ["ArmorIQ", "Ivish AI", "Shopstr"],
-    note: "design and frontend, shipped to production",
-  },
+  phone: "+1 555 0100",
+  url: "https://ashutoshrana.dev",
+  /** Rendered in the header's left slot, mono uppercase. */
+  est: "EST. 2006",
+  /** Two concurrent degrees is the unusual fact, so it leads. */
+  studying: "Dual degree in progress",
 } as const;
 
+/**
+ * The identity grid, lifted from the reference's two-column
+ * icon + value block. Ordered by what a reviewer checks first:
+ * what he does, where he is, how to reach him.
+ *
+ * `icon` names a Phosphor glyph (ph:<name>).
+ *
+ * Order matters: the grid flows row-major across two columns, so
+ * items are listed in pairs that belong side by side. The two
+ * degrees share a row, which is what makes "concurrent" legible
+ * without the word appearing anywhere.
+ *
+ * Values are kept short enough to sit on one line at the column
+ * width. Anything longer truncates with a title attribute, which
+ * is a fallback rather than a plan.
+ */
+export const identity = [
+  { icon: "ph:code", label: "Role", value: "AI Engineer, third-year", href: null },
+  { icon: "ph:map-pin", label: "Location", value: "India", href: null },
+  { icon: "ph:graduation-cap", label: "Studying", value: "B.Tech Computer Science", href: null },
+  { icon: "ph:graduation-cap", label: "Studying", value: "BS Data Science and AI", href: null },
+  { icon: "ph:clock", label: "Local time", value: "__CLOCK__", href: null },
+  { icon: "ph:gender-intersex", label: "Pronouns", value: site.pronouns, href: null },
+  { icon: "ph:envelope-simple", label: "Email", value: site.email, href: `mailto:${site.email}` },
+  { icon: "ph:phone", label: "Phone", value: site.phone, href: `tel:+15550100` },
+] as const;
+
+/** External profiles. `stat` is the thing a reviewer can verify. */
 export const profiles = [
-  { platform: "GitHub", handle: "ashu-2006", url: "https://github.com/ashu-2006", stat: "142 contributions", kind: "artifact" },
-  { platform: "Hugging Face", handle: "ashutosh", url: "https://huggingface.co/", stat: "3 models · 400+ downloads", kind: "artifact" },
-  { platform: "Kaggle", handle: "ashutosh", url: "https://kaggle.com/", stat: "Expert", kind: "artifact" },
-  { platform: "LeetCode", handle: "ashutosh", url: "https://leetcode.com/", stat: "1847 · Knight", kind: "rating" },
-  { platform: "Codeforces", handle: "ashutosh", url: "https://codeforces.com/", stat: "1512 · Specialist", kind: "rating" },
+  { platform: "GitHub", handle: "Ashu-2006", url: "https://github.com/", stat: "1,284 contributions", icon: "ph:github-logo" },
+  { platform: "Kaggle", handle: "ashutoshrana", url: "https://kaggle.com/", stat: "Contributor - 3 competitions", icon: "ph:chart-scatter" },
+  { platform: "Hugging Face", handle: "ashutoshrana", url: "https://huggingface.co/", stat: "2 models - 610 downloads", icon: "ph:robot" },
+  { platform: "LinkedIn", handle: "ashutoshrana", url: "https://linkedin.com/", stat: "Open to internships", icon: "ph:linkedin-logo" },
+  { platform: "X", handle: "ashutoshrana", url: "https://x.com/", stat: "Notes on shipping ML", icon: "ph:x-logo" },
 ] as const;
 
-/** Grouped by purpose, not a flat logo wall. */
+/**
+ * The stack table: numbered rows, mono chips.
+ *
+ * Grouped by the job each tool does rather than by language, so
+ * the row labels answer "can he do X" instead of "what has he
+ * heard of". Every entry here is from the resume.
+ */
 export const stackGroups = [
-  { group: "Serving", items: ["vLLM", "FastAPI", "Docker", "Modal"] },
-  { group: "Retrieval", items: ["Qdrant", "pgvector", "BM25", "Cohere rerank"] },
-  { group: "Training", items: ["PyTorch", "TRL", "LoRA", "Axolotl"] },
-  { group: "Rigor", items: ["Ragas", "promptfoo", "W&B", "pytest"] },
+  { group: "Languages", items: ["Python", "Java", "C++", "C", "SQL"] },
+  { group: "ML and data", items: ["scikit-learn", "NumPy", "Pandas", "Matplotlib", "EDA"] },
+  { group: "Serving and infra", items: ["PostgreSQL", "Hugging Face", "Docker", "Bash", "Git"] },
+  { group: "Applied AI", items: ["Prompt engineering", "Retrieval", "Eval harnesses", "Quantization"] },
+  { group: "Hardware", items: ["Arduino", "Sensor DAQ", "Robotics", "Signal processing"] },
+  { group: "Foundations", items: ["Linear algebra", "Probability", "Statistics", "Optimization"] },
+  { group: "Environment", items: ["VS Code", "Jupyter", "GitHub Desktop", "Excel"] },
 ] as const;
 
-export const record = [
-  { rank: "Top 30", of: "8,000+ teams", what: "national space-tech hackathon" },
-  { rank: "539", of: "3,300+", what: "Kaggle optimization competition" },
-  { rank: "1st runner up", of: "6,300 participants", what: "MLH hackathon" },
+/** Education. Real, from the resume. Two concurrent degrees. */
+export const education = [
+  {
+    school: "Example Institute of Technology",
+    credential: "B.Tech, Computer Science",
+    start: "2024",
+    end: "2028",
+    note: "Manufacturing systems, control, and instrumentation. The reason the ML work keeps ending up attached to a sensor.",
+    grade: null,
+  },
+  {
+    school: "Example University",
+    credential: "BS (Hons), Data Science and AI",
+    start: "2024",
+    end: "2028",
+    note: "Taken concurrently with the B.Tech. Statistics, ML theory, and the maths under the libraries.",
+    grade: null,
+  },
+  {
+    school: "Example Secondary School",
+    credential: "Secondary, Class XII",
+    start: "2022",
+    end: "2024",
+    note: null,
+    grade: null,
+  },
+  {
+    school: "Example Secondary School",
+    credential: "Secondary, Class X",
+    start: "2011",
+    end: "2022",
+    note: null,
+    grade: null,
+  },
+] as const;
+
+/** Certifications. Real, from the resume. */
+export const certifications = [
+  { name: "Python", issuer: "Example Academy", year: "2025", url: "https://kaggle.com/learn" },
+  { name: "Intro to Machine Learning", issuer: "Example Academy", year: "2025", url: "https://kaggle.com/learn" },
+  { name: "Pandas", issuer: "Example Academy", year: "2025", url: "https://kaggle.com/learn" },
+] as const;
+
+/** Volunteer work. Real, from the resume. */
+export const volunteer = [
+  {
+    org: "Example Literacy Program",
+    kind: "Non-profit",
+    role: "Volunteer teacher",
+    period: "2023 - 2024",
+    detail:
+      "Taught basic language proficiency to domestic helpers and homemakers. Twelve learners, weekly sessions, over one academic year.",
+  },
+] as const;
+
+/**
+ * MOCK. Peer notes, for the reference's testimonial block.
+ * Invented to exercise the layout; not real endorsements.
+ */
+export const notes = [
+  {
+    quote:
+      "Ashutosh rewrote our feature pipeline and then, unprompted, wrote the test that proves it matches the old one row for row. That is the part nobody does.",
+    author: "Team lead",
+    role: "Open-source project",
+    weight: "primary",
+  },
+  {
+    quote:
+      "He turned up to the robotics review with a baseline. Everyone else brought a demo.",
+    author: "Faculty mentor",
+    role: "Example University",
+    weight: "primary",
+  },
+  { quote: "Reads error bars before headlines.", author: "Study group", role: "Example University", weight: "short" },
+  { quote: "Documents the failure modes. Rare.", author: "Project partner", role: "Sentiment analysis", weight: "short" },
+  { quote: "Fixed my dataloader in ten minutes.", author: "Classmate", role: "Example University", weight: "short" },
+] as const;
+
+/**
+ * The footer spec table, lifted from the reference. Mono keys,
+ * mono values, hairline cells. It reads as a colophon: what this
+ * page is made of, which is the correct register for a portfolio
+ * whose whole argument is "I show my work".
+ */
+export const colophon = {
+  domain: "ashutoshrana.dev",
+  blurb: "A portfolio that shows the measurement, not just the result.",
+  cells: [
+    { key: "Crafted by", value: "@ashutoshrana", href: "https://github.com/" },
+    { key: "Build", value: "a1c4f9e", href: null },
+    { key: "Date", value: "2026-08-27", href: null },
+    { key: "Systems", value: "6 shipped", href: null },
+    { key: "Deployed on", value: "Cloudflare", href: null },
+    { key: "Source code", value: "GitHub", href: "https://github.com/" },
+    { key: "License", value: "MIT License", href: "https://opensource.org/license/mit" },
+    { key: "Typeface", value: "Geist", href: null },
+  ],
+  stack: ["astro@7.1.6", "tailwindcss@4.3.3", "motion@12.43.0"],
+  analytics: ["Cloudflare Web Analytics"],
+  inspiredBy: ["Chánh Đại", "Taseen Tanvir", "Saad Basheer", "Lorenzo de Lijser", "Making Software"],
+} as const;
+
+/**
+ * Dock entries. Icons with instant tooltips; the active page renders
+ * the filled variant of its glyph, which is what marks "you are
+ * here" without a second indicator competing with the icon.
+ *
+ * Resume is deliberately not here: the dock's solid button downloads
+ * the CV, and the hero links the /resume page. Two resume affordances
+ * in one seven-item bar was one more than the information deserved.
+ *
+ * The @ entry navigates to /contact; its tooltip shows the address
+ * itself, so hovering answers "what will this get me" before the
+ * click.
+ */
+export const dockItems = [
+  { href: "/", label: "Home", icon: "ph:house", iconFill: "ph:house-fill", tooltip: "Home", key: "1" },
+  { href: "/work", label: "Work", icon: "ph:stack", iconFill: "ph:stack-fill", tooltip: "Work", key: "2" },
+  { href: "/writing", label: "Writing", icon: "ph:notebook", iconFill: "ph:notebook-fill", tooltip: "Writing", key: "3" },
+  { href: "/contact", label: "Contact", icon: "ph:envelope-simple", iconFill: "ph:envelope-simple-fill", tooltip: "Contact", key: "4" },
 ] as const;

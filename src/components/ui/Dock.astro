@@ -1,0 +1,180 @@
+---
+/**
+ * The icon dock. Primary navigation, bottom centre.
+ *
+ * Four nav icons, a divider, and the one action that earns a solid
+ * button: download the CV. The active page renders the FILLED
+ * variant of its glyph, which marks "you are here" in the icon
+ * itself instead of adding a second indicator to compete with it;
+ * the dot underneath stays as the low-vision redundancy.
+ *
+ * Motion, both from transitions.dev:
+ *  - 11-avatar-group-hover: the hovered icon rises and scales, its
+ *    neighbours follow with a power falloff, and the row springs
+ *    back with direction-aware easing.
+ *  - 17-tooltip with zero delay: an icon-only nav where the label
+ *    takes 80ms to arrive reads as unlabelled, so every entry names
+ *    itself the moment the pointer lands.
+ *
+ * Accessibility: icons are not self-describing, so every entry has a
+ * real accessible name on the anchor; tooltips are aria-hidden or
+ * the name would be announced twice.
+ */
+import { Icon } from "astro-icon/components";
+import { dockItems } from "../../config/site";
+
+interface Props {
+  section?: string;
+}
+const { section = "home" } = Astro.props;
+
+const activeOf = (href: string) =>
+  href === "/" ? section === "home" : section === href.replace("/", "");
+---
+
+<nav
+  aria-label="Main"
+  class="dock no-print fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2"
+  style="view-transition-name: dock"
+>
+  <div
+    class="t-avatar-group flex items-end gap-1 rounded-2xl border border-line bg-surface p-1.5"
+  >
+    {
+      dockItems.map((item) => {
+        const active = activeOf(item.href);
+        return (
+          <span class="t-tt-wrap t-avatar">
+            <a
+              href={item.href}
+              class:list={[
+                "t-tt-trigger dock-btn grid size-10 place-items-center rounded-xl transition-colors duration-fast ease-out",
+                active ? "text-ink" : "text-ink-3 hover:text-ink",
+              ]}
+              aria-label={item.label}
+              aria-current={active ? "page" : undefined}
+              data-dock-key={item.key}
+            >
+              <Icon
+                name={active ? item.iconFill : item.icon}
+                class="size-5"
+                aria-hidden="true"
+              />
+            </a>
+            <span class="t-tt" role="tooltip" aria-hidden="true">
+              {item.tooltip}
+              <span class="ml-1.5 opacity-55">{item.key}</span>
+            </span>
+            {active && <span class="dock-dot" aria-hidden="true" />}
+          </span>
+        );
+      })
+    }
+
+    <span class="mx-0.5 mb-2 h-5 w-px shrink-0 bg-line" aria-hidden="true"></span>
+
+    <span class="t-tt-wrap t-avatar">
+      <a
+        href="/resume.pdf"
+        download
+        class="t-tt-trigger dock-btn grid size-10 place-items-center rounded-xl bg-ink text-ground transition-opacity duration-fast ease-out hover:opacity-90"
+        aria-label="Download resume as PDF"
+      >
+        <Icon name="ph:arrow-down" class="size-5" aria-hidden="true" />
+      </a>
+      <span class="t-tt" role="tooltip" aria-hidden="true">
+        Download CV
+        <span class="ml-1.5 opacity-55">D</span>
+      </span>
+    </span>
+  </div>
+</nav>
+
+<style>
+  /* Enters once, after the page content has landed. Never hides on
+     scroll: a nav that disappears is a nav you have to hunt for. */
+  .dock {
+    animation: dock-enter var(--motion-reveal) var(--delay-dock) both;
+  }
+
+  /* Y only. Tailwind v4 implements -translate-x-1/2 with the
+     independent `translate` property, so a keyframe animating
+     `transform` composes with it rather than overriding it.
+     Re-applying translateX(-50%) here would centre the dock twice
+     and push it off-screen on narrow viewports. */
+  @keyframes dock-enter {
+    from {
+      opacity: 0;
+      transform: translateY(130%);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The lift comes from .t-avatar's transform, so the button itself
+     must not also transform, or the two fight. It only paints. */
+  .dock-btn:active {
+    filter: brightness(0.88);
+  }
+
+  .dock-dot {
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    translate: -50% 0;
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background-color: currentColor;
+    color: var(--color-ink);
+  }
+
+  /* Below 26rem the row tightens to the 36px hit-target floor
+     rather than wrapping. */
+  @media (max-width: 26rem) {
+    .dock-btn {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+  }
+
+  /*
+   * Edge clamping for the outermost tooltips. A tooltip is centred
+   * on its trigger, which pushes the rightmost one past the viewport
+   * edge on narrow screens: measured 4px over at 360px. The last two
+   * anchor right, the first two anchor left. Both the resting and
+   * hovered transforms are overridden, because global.css sets
+   * translate(-50%) in each.
+   */
+  @media (max-width: 34rem) {
+    .t-avatar-group > .t-tt-wrap:nth-last-child(-n + 2) .t-tt {
+      left: auto;
+      right: 0;
+      transform-origin: 100% 100%;
+      transform: translate(0, 0) scale(var(--tt-scale));
+    }
+    .t-avatar-group > .t-tt-wrap:nth-last-child(-n + 2):hover .t-tt,
+    .t-avatar-group
+      > .t-tt-wrap:nth-last-child(-n + 2)
+      .t-tt-trigger:focus-visible
+      + .t-tt {
+      transform: translate(0, 0) scale(1);
+    }
+
+    .t-avatar-group > .t-tt-wrap:nth-child(-n + 2) .t-tt {
+      left: 0;
+      right: auto;
+      transform-origin: 0 100%;
+      transform: translate(0, 0) scale(var(--tt-scale));
+    }
+    .t-avatar-group > .t-tt-wrap:nth-child(-n + 2):hover .t-tt,
+    .t-avatar-group
+      > .t-tt-wrap:nth-child(-n + 2)
+      .t-tt-trigger:focus-visible
+      + .t-tt {
+      transform: translate(0, 0) scale(1);
+    }
+  }
+</style>

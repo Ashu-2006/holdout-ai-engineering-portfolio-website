@@ -1,0 +1,220 @@
+---
+/**
+ * Project rows, from Figma 1:18554.
+ *
+ * A row is: icon tile, title, mono date range, and two controls on
+ * the right. Expanding reveals the outcome, the measurement, the
+ * bullets, the stack chips and the evidence links, in that order,
+ * because that is the order a reviewer reads them in.
+ *
+ * Three decisions worth naming:
+ *
+ *  1. `metric` renders value, label, context and baseline together
+ *     or not at all. A number without its baseline is the single
+ *     most common lie on an ML portfolio, so the component makes
+ *     the honest version the only expressible one.
+ *  2. A project with no evidence renders an explicit "nothing to
+ *     open yet" line rather than omitting the row. A silent gap
+ *     reads as an oversight; a named gap reads as a decision.
+ *  3. Native <details> again, so rows are readable with no JS and
+ *     print expanded.
+ */
+import { Icon } from "astro-icon/components";
+import { dateRange, maturityMeta, type Project } from "../../data/work";
+
+interface Props {
+  items: Project[];
+  /** Opens the first row. Used on the home page's short list. */
+  openFirst?: boolean;
+  /** Renders the poster inside the panel. Off on dense index pages. */
+  posters?: boolean;
+}
+const { items, openFirst = false, posters = true } = Astro.props;
+
+const evidenceIcon: Record<string, string> = {
+  repo: "ph:git-branch",
+  demo: "ph:cursor-click",
+  notebook: "ph:notebook",
+  model: "ph:robot",
+  writeup: "ph:article",
+};
+---
+
+{
+  items.length === 0 ? (
+    /* Empty state. Reachable in real use: the work index filters,
+       and a filter can legitimately match nothing. */
+    <div class="well text-center">
+      <p class="text-body text-ink">Nothing here under that filter.</p>
+      <p class="mt-1 text-body text-ink-3">
+        Try "All", or the deployed systems, which is where the evidence is.
+      </p>
+    </div>
+  ) : (
+    <div class="rows border-t border-line-2">
+      {items.map((p, i) => {
+        const m = maturityMeta[p.maturity];
+        return (
+          <details
+            class="t-acc group/acc"
+            open={openFirst && i === 0}
+            data-project={p.slug}
+            data-maturity={p.maturity}
+          >
+            <summary class="row-interactive flex cursor-pointer items-center gap-3 py-3">
+              <span
+                class="grid size-9 shrink-0 place-items-center rounded-lg border border-line-2 bg-surface text-ink-2 transition-colors duration-fast ease-out group-hover/acc:text-ink"
+                aria-hidden="true"
+              >
+                <Icon name={p.icon} class="size-4.5" />
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-2">
+                  <span class="truncate text-body text-ink">
+                    {p.title}
+                  </span>
+                  {/* Maturity is a required field, so the state is
+                      always visible. "Prototype" said plainly reads
+                      as confidence, not as an excuse. */}
+                  <span
+                    class:list={[
+                      "shrink-0 rounded-full px-1.5 py-px font-mono text-label  uppercase",
+                      m.tone === "live" && "bg-live/15 text-live",
+                      m.tone === "caution" && "bg-caution/15 text-caution",
+                      m.tone === "muted" && "bg-ink/10 text-ink-3",
+                    ]}
+                  >
+                    {m.label}
+                  </span>
+                </span>
+                <span class="numeric mt-0.5 block text-label text-ink-3">
+                  {dateRange(p.start, p.end)}
+                </span>
+              </span>
+
+              <span class="flex shrink-0 items-center gap-1">
+                <span
+                  class="grid size-7 place-items-center rounded-md text-ink-4 transition-colors duration-fast ease-out group-hover/acc:text-ink-2"
+                  aria-hidden="true"
+                >
+                  <Icon name="ph:arrow-square-out" class="size-4" />
+                </span>
+                <span
+                  class="t-acc-chevron grid size-7 place-items-center text-ink-4 transition-colors duration-fast ease-out group-hover/acc:text-ink-2"
+                  aria-hidden="true"
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  >
+                    <path d="M4 6.5L8 10.5L12 6.5" />
+                  </svg>
+                </span>
+              </span>
+            </summary>
+
+            <div class="t-acc-panel">
+              <div class="t-acc-panel-inner">
+                <div class="pb-5">
+                  <p class="prose-measure text-body text-ink-2">
+                    {p.outcome}
+                  </p>
+
+                  {posters && (
+                    /*
+                      The poster is the artifact the project produced,
+                      not a mockup of it. Sized by aspect-ratio with
+                      both axes fixed by the box, so no layout shift
+                      while it loads.
+                    */
+                    <figure class="mt-3.5">
+                      <img
+                        src={p.poster}
+                        alt={`${p.title}: ${p.metric.label} ${p.metric.value}, ${p.metric.context}`}
+                        width="1200"
+                        height="750"
+                        loading="lazy"
+                        decoding="async"
+                        class="w-full rounded-lg border border-line-2 bg-surface"
+                      />
+                    </figure>
+                  )}
+
+                  {/* The measurement block. Four parts, all present. */}
+                  <div
+                    class="mt-3.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border border-line-2 bg-surface px-3 py-2.5"
+                  >
+                    <span class="numeric text-title text-ink">
+                      {p.metric.value}
+                    </span>
+                    <span class="label label-quiet">{p.metric.label}</span>
+                    <span class="w-full text-body text-ink-3">
+                      {p.metric.context}
+                    </span>
+                    {p.metric.baseline && (
+                      <span class="w-full text-body">
+                        <span class="label label-quiet">Baseline</span>{" "}
+                        <span class="text-ink-2">{p.metric.baseline}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <ul class="mt-3.5 space-y-1.5">
+                    {p.bullets.map((b) => (
+                      <li class="bullet prose-measure">{b}</li>
+                    ))}
+                  </ul>
+
+                  <ul class="mt-3 flex flex-wrap gap-1.5">
+                    {p.chips.map((c) => (
+                      <li class="chip">
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <a href={`/work/${p.slug}`} class="pill">
+                      Read the case study
+                      <Icon name="ph:arrow-right" class="size-3.5" aria-hidden="true" />
+                    </a>
+
+                    {p.evidence.length > 0 ? (
+                      p.evidence.map((e) => (
+                        <a
+                          href={e.url}
+                          rel="noopener"
+                          target="_blank"
+                          class="chip"
+                        >
+                          <Icon
+                            name={evidenceIcon[e.kind]}
+                            class="size-3"
+                            aria-hidden="true"
+                          />
+                          <span>{e.label}</span>
+                        </a>
+                      ))
+                    ) : (
+                      /* The named gap. See note 2 in the header. */
+                      <span class="flex items-center gap-1.5 text-body text-caution">
+                        <Icon name="ph:warning" class="size-3.5" aria-hidden="true" />
+                        Nothing public to open yet
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+        );
+      })}
+    </div>
+  )
+}
+

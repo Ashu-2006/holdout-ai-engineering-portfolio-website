@@ -1,48 +1,153 @@
 ---
+/**
+ * The page frame.
+ *
+ * Three things live here and nowhere else: the document head, the
+ * drawing grid (.sheet + .sheet-rules), and the two chrome surfaces
+ * (the mode bar at the top, the dock at the bottom).
+ *
+ * The grid is the structural device taken from the Figma reference:
+ * the content column's edges are drawn as hairlines running the full
+ * document height, so the page reads as a measured drawing rather
+ * than a stack of cards.
+ *
+ * MACHINE view: every page passes a markdown serialisation of itself
+ * via `machine`. The switch flips data-mode on <html>; CSS swaps
+ * which of the two subtrees is visible. Both are always in the DOM,
+ * so the toggle costs no request and cannot half-load.
+ */
 import "../styles/global.css";
 import { site } from "../config/site";
-import Dock from "../components/portfolio/Dock.astro";
+import TopBar from "../components/ui/TopBar.astro";
+import Dock from "../components/ui/Dock.astro";
+import SiteFooter from "../components/ui/SiteFooter.astro";
+import Palette from "../components/ui/Palette.astro";
+import MachineView from "../components/ui/MachineView.astro";
 
 interface Props {
   title?: string;
   description?: string;
-  /** Sections the dock links to. Omit for pages without in-page nav. */
-  nav?: { id: string; label: string }[];
+  /** Marks the active dock entry. */
+  section?: "home" | "work" | "writing" | "contact" | "resume";
+  footer?: boolean;
+  /** Markdown serialisation of this page, for the MACHINE view. */
+  machine: string;
 }
 
 const {
   title = `${site.name}, ${site.role}`,
-  description = `${site.role}. I build ${site.builds}.`,
-  nav,
+  description = `${site.role}. I build ${site.builds}`,
+  section = "home",
+  footer = true,
+  machine,
 } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? site.url).href;
+const ogImage = new URL("/mock/og.svg", Astro.site ?? site.url).href;
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="scroll-smooth" data-mode="human">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="generator" content={Astro.generator} />
-    {/* Set the theme before first paint so there is no flash. */}
+
+    {/*
+      Geist and Geist Mono. The reference file declares its own
+      typeface in its colophon ("TYPEFACE  Geist"). Astro's site
+      pairs Obviously + Inter + MDIO, all three commercially
+      licensed, so none of them are shippable from here.
+    */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/*
+      Loaded non-blocking: the stylesheet arrives at lowest priority
+      (media="print"), then promotes itself once fetched. First paint
+      happens in the fallback stack instead of waiting on a third
+      party, and display=swap makes the arrival a reflow rather than
+      a blank page. The noscript copy keeps fonts for no-JS visitors.
+
+      Weight ranges are trimmed to what the site actually uses:
+      400-600 sans, 400-500 mono. Every axis unit past that is bytes
+      for glyphs no rule ever asks for.
+    */}
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap"
+      />
+    </noscript>
+
     <script is:inline>
+      /*
+        Restore both preferences before first paint, or a returning
+        visitor sees a flash of the wrong theme and the wrong mode.
+
+        Theme is SYSTEM FIRST: with nothing stored, no attribute is
+        set and the prefers-color-scheme media query in theme.css
+        decides. Both stored values have to be applied here, because
+        each one is overriding a system default that could go either
+        way.
+      */
       try {
-        const t = localStorage.getItem("theme");
-        if (t === "dark") document.documentElement.dataset.theme = "dark";
+        var t = localStorage.getItem("theme");
+        if (t === "dark" || t === "light") {
+          document.documentElement.dataset.theme = t;
+        }
+        if (localStorage.getItem("mode") === "machine") {
+          document.documentElement.dataset.mode = "machine";
+        }
       } catch {}
+      /*
+        Marks that scripting is available. Every "starts hidden,
+        animates in" rule is gated on .js, so if this never runs the
+        content is simply visible rather than stuck at opacity 0.
+      */
+      document.documentElement.classList.add("js");
     </script>
   </head>
 
   <body class="bg-ground text-ink-2 font-sans antialiased">
-    <a href="#main" class="skip-link text-sm">Skip to content</a>
-    <main id="main" class="mx-auto max-w-2xl px-5 pt-16 pb-32 sm:px-6">
-      <slot />
-    </main>
-    <Dock nav={nav} />
+    <a href="#main" class="skip-link">Skip to content</a>
+
+    <TopBar />
+
+    {/* HUMAN view */}
+    <div class="sheet" data-view="human">
+      <div class="sheet-rules" aria-hidden="true"></div>
+      <main id="main" class="relative pt-12 pb-32">
+        <slot />
+        {footer && <SiteFooter />}
+      </main>
+    </div>
+
+    {/* MACHINE view */}
+    <MachineView content={machine} />
+
+    <Dock section={section} />
+    <Palette />
+
+    <script>
+      import { initSite } from "../scripts/site";
+      initSite();
+    </script>
   </body>
 </html>

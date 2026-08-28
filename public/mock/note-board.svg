@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 368 496" width="368" height="496" role="img">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141416"/>
+      <stop offset="1" stop-color="#0d0d0e"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="7" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+    </filter>
+    
+  </defs>
+  <rect width="368" height="496" fill="#0b4a56"/>
+  <g filter="url(#blur-soft)"><circle cx="229" cy="94" r="84" fill="#0b4a56" opacity="0.14"/><circle cx="134" cy="356" r="117" fill="#22d3ee" opacity="0.23"/><circle cx="274" cy="7" r="66" fill="#0b4a56" opacity="0.13"/><circle cx="67" cy="198" r="73" fill="#22d3ee" opacity="0.21"/><circle cx="83" cy="223" r="167" fill="#0b4a56" opacity="0.23"/><circle cx="285" cy="40" r="150" fill="#22d3ee" opacity="0.18"/><circle cx="2" cy="19" r="144" fill="#0b4a56" opacity="0.19"/></g>
+  <defs><filter id="blur-soft"><feGaussianBlur stdDeviation="34"/></filter></defs>
+  <path d="M0 30H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 60H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 90H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 120H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 150H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 180H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 210H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 240H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 270H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 300H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 330H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 360H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 390H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 420H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 450H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/><path d="M0 480H368" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <rect width="368" height="496" filter="url(#grain)" opacity="1"/>
+  <rect x="0" y="404" width="368" height="92" fill="rgba(0,0,0,0.55)"/>
+  <g font-family="Geist Mono, ui-monospace, monospace">
+    <text x="20" y="438" font-size="13" letter-spacing="1.4" fill="#22d3ee">DESK / 05.26</text>
+    <text x="20" y="464" font-size="15" fill="#f2f2f2">Arduino and a bad solder joint</text>
+  </g>
+</svg>

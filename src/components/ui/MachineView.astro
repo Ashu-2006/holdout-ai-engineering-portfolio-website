@@ -1,0 +1,140 @@
+---
+/**
+ * The MACHINE view of a page.
+ *
+ * A single monospace document plus one action: copy all of it. The
+ * structure is borrowed from pages that publish an agent-readable
+ * twin; the treatment is this site's own, so flipping the switch
+ * feels like changing the lens rather than leaving the site.
+ *
+ * Always in the DOM, hidden by CSS. That means the toggle is instant,
+ * cannot half-load, and the content is in the HTML source for
+ * anything that reads markup without running scripts, which is most
+ * of what this view is for.
+ *
+ * `content` arrives pre-serialised from lib/machine.ts, built off the
+ * same objects the human view renders.
+ */
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  content: string;
+}
+const { content } = Astro.props;
+
+const lines = content.split("\n").length;
+const words = content.trim().split(/\s+/).length;
+/* Rough, and labelled as rough. ~4 chars per token for English
+   prose is the usual back-of-envelope figure. */
+const tokens = Math.round(content.length / 4);
+---
+
+<div class="machine" data-view="machine">
+  <div class="column py-8">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <p class="label">
+        Machine view
+        <span class="text-ink-4">
+          / {lines} lines / {words} words / ~{tokens} tokens
+        </span>
+      </p>
+
+      <button type="button" data-copy-machine class="pill">
+        <Icon name="ph:copy" class="size-4" aria-hidden="true" />
+        <span data-copy-label>Copy all</span>
+      </button>
+    </div>
+
+    {/*
+      A <pre> so whitespace is preserved, wrapped so a long line
+      never scrolls the page sideways. tabindex makes it keyboard
+      scrollable, which a scrollable region needs to be.
+    */}
+    <pre
+      class="machine-doc" data-machine-doc
+      tabindex="0"
+      aria-label="Machine-readable version of this page">{content}</pre>
+
+    <p class="mt-4 text-ink-3">
+      Generated from the same source as the human view. Full site:
+      <a href="/llms-full.txt" class="link-ref">/llms-full.txt</a>
+    </p>
+  </div>
+</div>
+
+<style>
+  /*
+   * Which view is visible is decided by one attribute on <html>, so
+   * there is one source of truth and no chance of both showing.
+   *
+   * Default-hidden via CSS class, NOT the hidden attribute: Tailwind
+   * v4's preflight declares `[hidden] { display: none !important }`,
+   * which no reveal rule can beat. That was the "machine view is
+   * completely empty" bug. The no-JS default is still the human
+   * view, because this rule always loads with the stylesheet.
+   */
+  .machine {
+    display: none;
+  }
+  :global(html[data-mode="machine"]) .machine {
+    display: block;
+  }
+  :global(html[data-mode="machine"]) :global([data-view="human"]) {
+    display: none;
+  }
+  /* The dock is navigation for the human view; an agent-facing
+     document does not need a floating icon bar over it, and the
+     mode switch in the top bar is the way back. */
+  :global(html[data-mode="machine"]) :global(nav[aria-label="Main"]) {
+    display: none;
+  }
+
+  .machine-doc {
+    margin: 0;
+    padding: 1rem 1.125rem;
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-row);
+    background-color: var(--color-surface);
+    font-family: var(--font-mono);
+    /* Deliberately below --text-body: this is a document dump, not
+       reading copy, and the whole point is to see a lot of it at
+       once. It is the one place the single-size rule is relaxed,
+       and it is not prose. */
+    font-size: 0.8125rem;
+    line-height: 1.5rem;
+    color: var(--color-ink-2);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    max-height: 70vh;
+    overflow-y: auto;
+    /* Tabular figures so the metric tables in the dump line up. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Markdown headings inside the dump are just text, but the eye
+     still wants the # lines to register as structure. A subtle
+     left rule does that without parsing anything. */
+  .machine-doc::selection,
+  .machine-doc ::selection {
+    background-color: color-mix(in oklab, var(--color-ink) 16%, transparent);
+  }
+
+  .machine {
+    animation: machine-in var(--motion-disclose) both;
+  }
+  @keyframes machine-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .machine {
+      animation: none;
+    }
+  }
+</style>

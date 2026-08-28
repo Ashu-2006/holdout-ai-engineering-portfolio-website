@@ -1,9 +1,36 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "portfolio-site-template",
+  "name": "holdout",
   "compatibility_date": "2026-08-01",
+
+  // The backend: one worker (worker/index.js) in front of the static
+  // assets. POST /api/contact is handled there; every other request
+  // falls through to the built site.
+  "main": "worker/index.js",
+
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "404-page"
+  },
+
+  // Contact-form storage. Local dev (`wrangler dev`) runs D1 on disk
+  // and ignores the id. Before the FIRST DEPLOY, run:
+  //   npx wrangler d1 create holdout-contact
+  // and replace database_id below with the id it prints.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "holdout-contact",
+      "database_id": "REPLACE-ON-FIRST-DEPLOY"
+    }
+  ],
+
+  // Optional email forwarding of submissions. Set with:
+  //   npx wrangler secret put RESEND_API_KEY
+  // Without it, messages are still stored in D1 and readable via:
+  //   npx wrangler d1 execute holdout-contact --command "SELECT * FROM submissions"
+  "vars": {
+    "CONTACT_TO": "ashutosh@armoriq.io"
   }
 }

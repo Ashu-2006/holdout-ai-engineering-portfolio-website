@@ -1,0 +1,343 @@
+---
+/**
+ * One writing entry: an essay (posts collection) or a one-idea
+ * explainer (lab collection). Both live under /writing because the
+ * reader does not care which folder the markdown sits in; the
+ * template branches where the two genuinely differ.
+ *
+ * Essays: cover, date, tags, prose. Explainers: figure-first with the
+ * takeaway stated in a callout before the reader has to find it.
+ * Drafts get no route at all: their queue row is not a link, and a
+ * URL whose whole content is "drafting" helps nobody.
+ *
+ * prev/next runs across the combined sequence in index order, so
+ * paging walks the whole shelf, essays into explainers.
+ */
+import { getCollection, render } from "astro:content";
+import { Icon } from "astro-icon/components";
+import PageLayout from "../../layouts/PageLayout.astro";
+import { machinePost, machineLabEntry } from "../../lib/machine";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts"))
+    .filter((p) => p.data.status === "live")
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+  const lab = (await getCollection("lab")).sort(
+    (a, b) => a.data.order - b.data.order
+  );
+
+  /* Same combined order as the index grid. */
+  const sequence = [
+    ...posts.map((entry) => ({ kind: "essay" as const, entry })),
+    ...lab.map((entry) => ({ kind: "explainer" as const, entry })),
+  ];
+
+  return sequence.map((item, i) => ({
+    params: { slug: item.entry.id },
+    props: {
+      item,
+      prev: sequence[i - 1] ?? null,
+      next: sequence[i + 1] ?? null,
+    },
+  }));
+}
+
+const { item, prev, next } = Astro.props;
+const { Content } = await render(item.entry as any);
+
+const isEssay = item.kind === "essay";
+const data: any = item.entry.data;
+
+const fmt = isEssay
+  ? new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(data.date)
+  : null;
+
+const machineDoc = isEssay
+  ? machinePost({
+      title: data.title,
+      description: data.description,
+      date: data.date,
+      readingTime: data.readingTime,
+      tags: [...data.tags],
+      body: (item.entry as any).body ?? "",
+    })
+  : machineLabEntry({
+      title: data.title,
+      blurb: data.blurb,
+      teaches: data.teaches,
+      body: (item.entry as any).body ?? "",
+    });
+
+const titleOf = (x: typeof item) => (x.entry.data as any).title;
+---
+
+<PageLayout
+  machine={machineDoc}
+  section="writing"
+  title={`${data.title}, Ashutosh Rana`}
+  description={isEssay ? data.description : data.blurb}
+>
+  <article class="band">
+    <div class="column">
+      <nav aria-label="Breadcrumb" class="flex items-center gap-1.5">
+        <a
+          href="/writing"
+          class="label transition-colors duration-fast ease-out hover:text-ink"
+          >Writing</a
+        >
+        <span class="label text-ink-4" aria-hidden="true">/</span>
+        <span class="label truncate text-ink">
+          {isEssay ? data.readingTime : "explainer"}
+        </span>
+      </nav>
+
+      <h1 class="mt-5 text-title font-medium text-ink sm:text-display">
+        {data.title}
+      </h1>
+
+      <p class="prose-measure mt-3 text-ink-2">
+        {isEssay ? data.description : data.blurb}
+      </p>
+
+      {
+        isEssay ? (
+          <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line-2 pb-5">
+            <span class="numeric text-label tracking-[0.04em] text-ink-3">{fmt}</span>
+            <span class="text-ink-4" aria-hidden="true">|</span>
+            <ul class="flex flex-wrap gap-1.5">
+              {data.tags.map((t: string) => (
+                <li class="chip">
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          /* The takeaway, stated before the reader has to find it. An
+             explainer whose point you must infer has failed at its one
+             job. */
+          <p class="mt-5 flex items-start gap-2.5 rounded-xl border border-line-2 bg-surface px-3.5 py-3">
+            <Icon
+              name="ph:lightbulb"
+              class="mt-0.5 size-4 shrink-0 text-caution"
+              aria-hidden="true"
+            />
+            <span class="text-ink-2">
+              <span class="label label-quiet mr-1.5">Takeaway</span>
+              {data.teaches}
+            </span>
+          </p>
+        )
+      }
+
+      <figure class="mt-6">
+        <img
+          src={isEssay ? data.cover : data.visual}
+          alt={isEssay ? "" : data.teaches}
+          width={isEssay ? 1000 : 900}
+          height={isEssay ? 500 : 600}
+          class="w-full rounded-xl border border-line-2 bg-surface"
+        />
+        {
+          !isEssay && (
+            <figcaption class="mt-2.5 text-ink-3">
+              <span class="label">Fig. 1.</span> {data.blurb}
+            </figcaption>
+          )
+        }
+      </figure>
+
+      <div class="post mt-8">
+        <Content />
+      </div>
+    </div>
+  </article>
+
+  <section class="band">
+    <div class="column grid gap-2 sm:grid-cols-2">
+      {
+        prev ? (
+          <a
+            href={`/writing/${prev.entry.id}`}
+            class="group flex min-w-0 items-center gap-3 rounded-xl border border-line-2 p-3.5 transition-colors duration-fast ease-out hover:border-ink-4"
+          >
+            <Icon
+              name="ph:arrow-left"
+              class="size-4 shrink-0 text-ink-4 transition-transform duration-fast ease-out group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
+            <span class="min-w-0">
+              <span class="label label-quiet block">Previous</span>
+              <span class="mt-0.5 block truncate text-ink">{titleOf(prev)}</span>
+            </span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        next && (
+          <a
+            href={`/writing/${next.entry.id}`}
+            class="group flex min-w-0 items-center justify-end gap-3 rounded-xl border border-line-2 p-3.5 text-right transition-colors duration-fast ease-out hover:border-ink-4 sm:col-start-2"
+          >
+            <span class="min-w-0">
+              <span class="label label-quiet block">Next</span>
+              <span class="mt-0.5 block truncate text-ink">{titleOf(next)}</span>
+            </span>
+            <Icon
+              name="ph:arrow-right"
+              class="size-4 shrink-0 text-ink-4 transition-transform duration-fast ease-out group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </a>
+        )
+      }
+    </div>
+  </section>
+</PageLayout>
+
+<style is:global>
+  /*
+   * Writing prose. Scoped by .post so it cannot reach any component.
+   * Capped at --measure-prose: past about 70 characters the eye
+   * loses the start of the next line.
+   */
+  .post {
+    max-width: var(--measure-prose);
+  }
+  .post > * + * {
+    margin-top: 1.25rem;
+  }
+  .post p,
+  .post li {
+    font-size: var(--text-body);
+    line-height: 1.75rem;
+    letter-spacing: var(--text-body--letter-spacing);
+    color: var(--color-ink-2);
+    text-wrap: pretty;
+  }
+  .post strong {
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+  .post h2 {
+    margin-top: 2.5rem;
+    font-size: var(--text-title);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+  .post h3 {
+    margin-top: 2rem;
+    font-size: var(--text-body);
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+  .post ul,
+  .post ol {
+    padding-left: 1.125rem;
+  }
+  .post ul {
+    list-style: none;
+  }
+  .post ul > li {
+    position: relative;
+    padding-left: 0.75rem;
+  }
+  .post ul > li::before {
+    content: "";
+    position: absolute;
+    left: -0.25rem;
+    top: 0.75rem;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background-color: var(--color-ink-4);
+  }
+  .post ol {
+    list-style: decimal;
+  }
+  .post li + li {
+    margin-top: 0.5rem;
+  }
+  .post a {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--color-ink-4);
+    text-underline-offset: 3px;
+  }
+  .post a:hover {
+    text-decoration-color: var(--color-ink);
+  }
+  /* Code blocks scroll on their own axis so a long line never makes
+     the page scroll sideways. */
+  .post pre {
+    overflow-x: auto;
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-row);
+    background-color: var(--color-surface);
+    padding: 0.875rem 1rem;
+  }
+  .post pre code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.5rem;
+    color: var(--color-ink-2);
+  }
+  .post :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 0.1em 0.35em;
+    border-radius: var(--radius-chip);
+    background-color: var(--color-raised);
+    color: var(--color-ink);
+  }
+  .post blockquote {
+    border-left: 2px solid var(--color-line);
+    padding-left: 1rem;
+    color: var(--color-ink-3);
+  }
+  /* Tables scroll inside their own container; the wrapper is added
+     by the script below. */
+  .post table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .post th,
+  .post td {
+    border-bottom: 1px solid var(--color-line-2);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+  }
+  .post th {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+    font-weight: 400;
+  }
+  .post td {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-2);
+  }
+</style>
+
+<script>
+  /* Wrap tables so a wide one scrolls on its own axis. Done here
+     rather than in the Markdown to keep the content files portable. */
+  document.querySelectorAll<HTMLTableElement>(".post table").forEach((t) => {
+    if (t.parentElement?.dataset.tableScroll) return;
+    const box = document.createElement("div");
+    box.dataset.tableScroll = "";
+    box.style.overflowX = "auto";
+    t.replaceWith(box);
+    box.appendChild(t);
+  });
+</script>

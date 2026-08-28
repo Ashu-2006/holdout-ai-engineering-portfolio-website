@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b2b30"/>
+      <stop offset="0.55" stop-color="#17171a"/>
+      <stop offset="1" stop-color="#0c0c0e"/>
+    </linearGradient>
+    <filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="4"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.08"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="200" height="200" rx="58" fill="url(#a)"/>
+  <g stroke="rgba(255,255,255,0.09)" stroke-width="1" fill="none">
+    <path d="M0 66H200M0 134H200M66 0V200M134 0V200"/>
+  </g>
+  <text x="100" y="126" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="72" letter-spacing="-2" fill="#f2f2f2">AR</text>
+  <circle cx="152" cy="48" r="7" fill="#a3e635"/>
+  <rect width="200" height="200" rx="58" filter="url(#g)"/>
+  <rect x="0.5" y="0.5" width="199" height="199" rx="57.5" fill="none" stroke="rgba(255,255,255,0.14)"/>
+</svg>

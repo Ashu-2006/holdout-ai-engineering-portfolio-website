@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750" role="img">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141416"/>
+      <stop offset="1" stop-color="#0d0d0e"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="7" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+    </filter>
+    
+  </defs>
+  <rect width="1200" height="750" fill="url(#plate)"/>
+  <path d="M40 0V750M80 0V750M120 0V750M160 0V750M200 0V750M240 0V750M280 0V750M320 0V750M360 0V750M400 0V750M440 0V750M480 0V750M520 0V750M560 0V750M600 0V750M640 0V750M680 0V750M720 0V750M760 0V750M800 0V750M840 0V750M880 0V750M920 0V750M960 0V750M1000 0V750M1040 0V750M1080 0V750M1120 0V750M1160 0V750M0 40H1200M0 80H1200M0 120H1200M0 160H1200M0 200H1200M0 240H1200M0 280H1200M0 320H1200M0 360H1200M0 400H1200M0 440H1200M0 480H1200M0 520H1200M0 560H1200M0 600H1200M0 640H1200M0 680H1200M0 720H1200" stroke="rgba(255,255,255,0.055)" stroke-width="1" fill="none"/>
+  <path d="M216 335 C 443.5462631005794 335, 443.5462631005794 136.13137615239248, 681.1 136.1"
+      fill="none" stroke="#22d3ee" stroke-width="4.11" opacity="0.8"/><path d="M216 335 C 556.0804680921137 335, 556.0804680921137 140.94763285806403, 906.2 140.9"
+      fill="none" stroke="#22d3ee" stroke-width="3.63" opacity="0.8"/><path d="M216 335 C 527.3186395689845 335, 527.3186395689845 215.97941275825724, 848.6 216.0"
+      fill="none" stroke="#22d3ee" stroke-width="3.42" opacity="0.8"/><path d="M216 335 C 545.7931495993398 335, 545.7931495993398 223.07535937428474, 885.6 223.1"
+      fill="none" stroke="#22d3ee" stroke-width="3.07" opacity="0.8"/><path d="M216 335 C 481.8519911239855 335, 481.8519911239855 286.46013370063156, 757.7 286.5"
+      fill="none" stroke="#22d3ee" stroke-width="2.96" opacity="0.8"/><path d="M216 335 C 449.9687181925401 335, 449.9687181925401 323.4723201068118, 693.9 323.5"
+      fill="none" stroke="#22d3ee" stroke-width="2.40" opacity="0.8"/><path d="M216 335 C 551.7276719072834 335, 551.7276719072834 370.52970944950357, 897.5 370.5"
+      fill="none" stroke="#0b4a56" stroke-width="1.86" opacity="0.3"/><path d="M216 335 C 593.3355367765762 335, 593.3355367765762 399.6477962671779, 980.7 399.6"
+      fill="none" stroke="#0b4a56" stroke-width="1.88" opacity="0.3"/><path d="M216 335 C 452.00452914927155 335, 452.00452914927155 423.3445229642093, 698.0 423.3"
+      fill="none" stroke="#0b4a56" stroke-width="1.49" opacity="0.3"/><path d="M216 335 C 563.0040734331124 335, 563.0040734331124 502.9313824502751, 920.0 502.9"
+      fill="none" stroke="#0b4a56" stroke-width="1.07" opacity="0.3"/><path d="M216 335 C 502.68391037359834 335, 502.68391037359834 526.1015567290597, 799.4 526.1"
+      fill="none" stroke="#0b4a56" stroke-width="1.07" opacity="0.3"/><g>
+    <path d="M600 280H1160" stroke="#f2f2f2" stroke-width="1" stroke-dasharray="5 5" opacity="0.4"/>
+  </g><g>
+    <circle cx="190" cy="335" r="26" fill="#f2f2f2"/>
+    <text x="190" y="341" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="17" fill="#0d0d0e">?</text>
+    <text x="190" y="397" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="16" letter-spacing="1.2" fill="#8f8f8f">QUERY</text>
+  </g><circle cx="697.1" cy="136.1" r="18.7" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee" stroke-width="1.6" opacity="1"/>
+      <text x="727.8" y="141.1" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#f2f2f2" opacity="1">0.97</text><circle cx="922.2" cy="140.9" r="17.0" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee" stroke-width="1.6" opacity="1"/>
+      <text x="951.2" y="145.9" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#f2f2f2" opacity="1">0.83</text><circle cx="864.6" cy="216.0" r="16.3" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee" stroke-width="1.6" opacity="1"/>
+      <text x="892.9" y="221.0" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#f2f2f2" opacity="1">0.77</text><circle cx="901.6" cy="223.1" r="15.0" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee" stroke-width="1.6" opacity="1"/>
+      <text x="928.6" y="228.1" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#f2f2f2" opacity="1">0.67</text><circle cx="773.7" cy="286.5" r="14.6" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee" stroke-width="1.6" opacity="1"/>
+      <text x="800.3" y="291.5" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#f2f2f2" opacity="1">0.63</text><circle cx="709.9" cy="323.5" r="12.6" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee" stroke-width="1.6" opacity="1"/>
+      <text x="734.6" y="328.5" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#f2f2f2" opacity="1">0.47</text><circle cx="913.5" cy="370.5" r="10.8" fill="none" fill-opacity="0.22" stroke="#0b4a56" stroke-width="1.6" opacity="0.5"/>
+      <text x="936.2" y="375.5" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#8f8f8f" opacity="0.65">0.31</text><circle cx="996.7" cy="399.6" r="10.8" fill="none" fill-opacity="0.22" stroke="#0b4a56" stroke-width="1.6" opacity="0.5"/>
+      <text x="1019.5" y="404.6" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#8f8f8f" opacity="0.65">0.32</text><circle cx="714.0" cy="423.3" r="9.4" fill="none" fill-opacity="0.22" stroke="#0b4a56" stroke-width="1.6" opacity="0.5"/>
+      <text x="735.4" y="428.3" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#8f8f8f" opacity="0.65">0.20</text><circle cx="936.0" cy="502.9" r="8.0" fill="none" fill-opacity="0.22" stroke="#0b4a56" stroke-width="1.6" opacity="0.5"/>
+      <text x="956.0" y="507.9" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#8f8f8f" opacity="0.65">0.08</text><circle cx="815.4" cy="526.1" r="8.0" fill="none" fill-opacity="0.22" stroke="#0b4a56" stroke-width="1.6" opacity="0.5"/>
+      <text x="835.3" y="531.1" font-family="Geist Mono, ui-monospace, monospace" font-size="15" fill="#8f8f8f" opacity="0.65">0.08</text><g font-family="Geist Mono, ui-monospace, monospace">
+    <text x="48" y="658" font-size="19" letter-spacing="1.6" fill="#8f8f8f">FIG.02  HYBRID RETRIEVAL</text>
+    <text x="48" y="692" font-size="30" letter-spacing="-0.2" fill="#f2f2f2">Reciprocal rank fusion</text>
+    <text x="48" y="720" font-size="17" letter-spacing="0.5" fill="#8f8f8f">11 candidates, 4 above threshold, rest refused</text>
+  </g>
+  <rect width="1200" height="750" filter="url(#grain)" opacity="0.9"/>
+  <rect x="0.5" y="0.5" width="1199" height="749" fill="none" stroke="rgba(255,255,255,0.10)"/>
+</svg>

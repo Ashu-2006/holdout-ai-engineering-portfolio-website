@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141416"/>
+      <stop offset="1" stop-color="#0d0d0e"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="7" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+    </filter>
+    
+  </defs>
+  <rect width="1200" height="630" fill="url(#plate)"/>
+  <g stroke="rgba(255,255,255,0.055)" stroke-width="1">
+    <path d="M216 0V630M984 0V630"/>
+  </g>
+  <g font-family="Geist Mono, ui-monospace, monospace">
+    <text x="216" y="120" font-size="20" letter-spacing="2" fill="#8f8f8f">EST. 2006</text>
+  </g>
+  <text x="216" y="330" font-family="Geist, system-ui, sans-serif" font-size="86" font-weight="500" fill="#f2f2f2" letter-spacing="-3">Ashutosh Rana</text>
+  <text x="216" y="386" font-family="Geist Mono, ui-monospace, monospace" font-size="26" fill="#8f8f8f" letter-spacing="0.5">AI Engineer  /  measure it, or it did not happen</text>
+  <g font-family="Geist Mono, ui-monospace, monospace" font-size="19" fill="#8f8f8f" letter-spacing="1.2">
+    <text x="216" y="530">6 SYSTEMS</text>
+    <text x="400" y="530">3 SHIPPED TO PRODUCTION</text>
+    <text x="800" y="530">EVERY NUMBER HAS A BASELINE</text>
+  </g>
+  <rect width="1200" height="630" filter="url(#grain)" opacity="0.85"/>
+</svg>

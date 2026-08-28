@@ -1,26 +1,310 @@
 @import "tailwindcss";
 @import "./theme.css";
 
-/* Type and motion tokens live in theme.css, which is the single source of
-   truth. Importing both files here would declare them twice. */
+/* Tokens live in theme.css, which is the single source of truth.
+   This file holds only (a) cross-document transitions and (b) the
+   transitions.dev snippets, pasted verbatim so they stay portable
+   and diffable against upstream. Their tunable values are set in
+   theme.css, not here. */
 
-/* Native cross-document transitions: no router, no JS. Cards carry matching
-   view-transition-names in the folder and in the carousel, so the browser
-   morphs each one from where it sat in the folder to where it lands on the
-   page. Browsers without support just navigate. */
+/* ============================================================
+   Native cross-document transitions: no router, no JS.
+   ============================================================ */
 @view-transition {
   navigation: auto;
 }
 
 ::view-transition-group(*) {
-  /* Slow, because a page transition is the largest travel distance in
-     the product. Reads from the token so it moves with the scale. */
-  animation-duration: var(--duration-slow);
+  animation-duration: var(--duration-moderate);
   animation-timing-function: var(--ease-out);
+}
+
+/* The page frame is continuous between routes, so it must not
+   cross-fade with the content. Naming the bar and the dock takes
+   them out of the default root snapshot and holds them still. */
+::view-transition-group(topbar),
+::view-transition-group(dock) {
+  animation-duration: 0s;
 }
 
 @media (prefers-reduced-motion: reduce) {
   @view-transition {
     navigation: none;
+  }
+}
+
+/* ============================================================
+   transitions.dev / 17-tooltip
+   Delayed fade+scale in, instant out. Pure CSS.
+   --tt-delay is 0 in theme.css: the brief asks for an instant
+   tooltip, so the dock names its icons the moment the pointer
+   lands. Leaving still snaps, because transition-delay is only
+   set inside the hover rule.
+   ============================================================ */
+.t-tt-wrap {
+  position: relative;
+  display: inline-block;
+}
+.t-tt {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translate(-50%, 0) scale(var(--tt-scale));
+  transform-origin: 50% 100%;
+  padding: 5px 9px;
+  border-radius: var(--radius-chip);
+  background: var(--color-ink);
+  color: var(--color-ground);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: 1rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: var(--layer-tooltip);
+  opacity: 0;
+  pointer-events: none;
+  /* Default rule controls the LEAVE state. transition-delay
+     stays unset so leaving plays without delay. */
+  transition:
+    opacity var(--tt-out-dur) var(--tt-out-ease),
+    transform var(--tt-out-dur) var(--tt-out-ease);
+}
+.t-tt-wrap:hover .t-tt,
+.t-tt-trigger:focus-visible + .t-tt {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-duration: var(--tt-in-dur);
+  transition-timing-function: var(--tt-in-ease);
+  transition-delay: var(--tt-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tt {
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   transitions.dev / 11-avatar-group-hover
+   Distance-falloff lift with direction-aware easing. Drives the
+   icon dock: the hovered icon rises and scales, its neighbours
+   follow with a power falloff, and the whole row springs back.
+   ============================================================ */
+.t-avatar {
+  transform-origin: center bottom;
+  /* translateY before scale so scale does not amplify the lift. */
+  transform: translateY(var(--shift, 0px)) scale(var(--scale-active, 1));
+  transition: transform var(--avatar-dur) var(--avatar-ease-in);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-avatar {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   transitions.dev / 21-accordion
+   grid-template-rows 0fr <-> 1fr, so no JS height measuring and
+   content of any size animates cleanly.
+
+   Driven by a native <details> element rather than a button plus
+   data-open: the panel content then stays reachable with no JS,
+   and the disclosure semantics come for free. [open] replaces
+   [data-open="true"] throughout.
+   ============================================================ */
+.t-acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--acc-collapse) var(--acc-ease);
+}
+.t-acc[open] .t-acc-panel {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--acc-expand) var(--acc-ease);
+}
+.t-acc-panel-inner {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--acc-collapse) var(--acc-ease),
+    filter var(--acc-collapse) var(--acc-ease);
+}
+.t-acc[open] .t-acc-panel-inner {
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--acc-expand) var(--acc-ease),
+    filter var(--acc-expand) var(--acc-ease);
+}
+/* Flip the chevron vertically to turn the "v" into a "^".
+   scaleY(-1) about the centre passes through a flat line at the
+   midpoint, the same look as a `d:` path morph, but it animates
+   in every browser; CSS `d:` interpolation is Chromium only. */
+.t-acc-chevron {
+  display: inline-flex;
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform var(--acc-chevron) var(--acc-ease);
+}
+.t-acc-chevron path {
+  vector-effect: non-scaling-stroke;
+}
+.t-acc[open] .t-acc-chevron {
+  transform: scaleY(-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-acc-panel,
+  .t-acc-panel-inner,
+  .t-acc-chevron {
+    transition: none !important;
+  }
+}
+
+/* A <details> with a grid-animated panel must not use the
+   native marker or the default content box. */
+.t-acc > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.t-acc > summary::-webkit-details-marker {
+  display: none;
+}
+.t-acc > summary::marker {
+  content: "";
+}
+
+/* ============================================================
+   transitions.dev / 18-texts-reveal
+   Staggered blurred rise for stacked lines. Used once, on the
+   hero, which is the only place on the site with a genuine
+   first-impression moment to spend it on.
+   ============================================================ */
+.t-stagger-line {
+  display: block;
+}
+/* Hidden-until-shown is opt-in via .js, exactly like .reveal: if the
+   script never runs, the hero is simply visible. Only the animation
+   may depend on JavaScript, never the content. */
+.js .t-stagger-line {
+  opacity: 0;
+  transform: translateY(var(--stagger-distance));
+  filter: blur(var(--stagger-blur));
+  transition:
+    opacity var(--stagger-dur) var(--stagger-ease),
+    transform var(--stagger-dur) var(--stagger-ease),
+    filter var(--stagger-dur) var(--stagger-ease);
+  will-change: transform, opacity, filter;
+}
+.t-stagger-line--2 {
+  transition-delay: var(--stagger-stagger);
+}
+.t-stagger-line--3 {
+  transition-delay: calc(var(--stagger-stagger) * 2);
+}
+.t-stagger-line--4 {
+  transition-delay: calc(var(--stagger-stagger) * 3);
+}
+.t-stagger-line--5 {
+  transition-delay: calc(var(--stagger-stagger) * 4);
+}
+
+.t-stagger.is-shown .t-stagger-line {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-stagger-line {
+    transition: none !important;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ============================================================
+   transitions.dev / 16-tabs-sliding
+   The pill that slides between filter tabs. Position and width
+   are written from JS onto the track; CSS owns only the tween.
+   ============================================================ */
+.t-tabs {
+  position: relative;
+}
+.t-tabs-pill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  background-color: var(--color-raised);
+  transform: translateX(var(--pill-x, 0px));
+  width: var(--pill-w, 0px);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width var(--tabs-dur) var(--tabs-ease);
+  pointer-events: none;
+}
+/* First paint and resize write the position with no transition,
+   or the pill animates in from translateX(0) / width 0. */
+.t-tabs-pill[data-immediate] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tabs-pill {
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   Print. The resume is a real document, so it gets a real
+   print stylesheet rather than a screenshot of the dark page.
+   ============================================================ */
+@media print {
+  :root,
+  [data-theme="dark"],
+  [data-theme="light"] {
+    --color-ground: #ffffff;
+    --color-surface: #ffffff;
+    --color-raised: #ffffff;
+    --color-sunken: #ffffff;
+    --color-ink: #000000;
+    --color-ink-2: #333333;
+    --color-ink-3: #555555;
+    --color-ink-4: #777777;
+    --color-line: #cccccc;
+    --color-line-2: #dddddd;
+  }
+  .no-print,
+  .sheet-rules {
+    display: none !important;
+  }
+  .band {
+    padding-block: 0.75rem;
+    break-inside: avoid;
+  }
+  /* Every disclosure prints open: a printed resume cannot be
+     expanded, so anything collapsed on screen would silently
+     vanish from the document. */
+  .t-acc-panel {
+    grid-template-rows: 1fr !important;
+  }
+  .t-acc-panel-inner {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9px;
+    color: #666666;
+  }
+  @page {
+    margin: 14mm;
   }
 }

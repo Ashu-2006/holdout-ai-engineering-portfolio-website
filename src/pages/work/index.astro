@@ -1,0 +1,187 @@
+---
+/**
+ * Work index.
+ *
+ * Every system, filterable by maturity with the sliding-pill tabs
+ * from transitions.dev (16-tabs-sliding). Filtering is client-side
+ * over the rendered rows rather than a route per filter: with six
+ * items, a navigation would cost a page load to hide two rows.
+ *
+ * The filter counts are computed at build time and shown in the tab
+ * labels, so "Prototype (2)" tells you whether the filter is worth
+ * pressing before you press it.
+ */
+import PageLayout from "../../layouts/PageLayout.astro";
+import Band from "../../components/ui/Band.astro";
+import ProjectRows from "../../components/blocks/ProjectRows.astro";
+import { projects, type Maturity } from "../../data/work";
+import { machineWorkIndex } from "../../lib/machine";
+
+const sorted = [...projects].sort(
+  (a, b) => Number(b.featured) - Number(a.featured) || b.start.localeCompare(a.start)
+);
+
+const count = (m: Maturity) => projects.filter((p) => p.maturity === m).length;
+
+const tabs = [
+  { value: "all", label: "All", n: projects.length },
+  { value: "deployed", label: "Deployed", n: count("deployed") },
+  { value: "shipped", label: "Shipped", n: count("shipped") },
+  { value: "prototype", label: "Prototype", n: count("prototype") },
+].filter((t) => t.n > 0);
+
+/* Aggregates worth stating once, at the top, rather than making a
+   reviewer count rows. */
+const withEvidence = projects.filter((p) => p.evidence.length > 0).length;
+const withBaseline = projects.filter((p) => p.metric.baseline).length;
+
+/* MACHINE view of this page, built from the same objects the
+   human view below renders. See lib/machine.ts. */
+const machineDoc = machineWorkIndex();
+---
+
+<PageLayout machine={machineDoc}
+  section="work"
+  title="Work, Ashutosh Rana"
+  description="Six systems, each with a baseline, an evaluation set, and its documented failure modes."
+>
+  <Band
+    title="Systems"
+    count={projects.length}
+    note="Machine learning that had to survive contact with something real. Expand a row for the measurement and the failure modes."
+    as="h1"
+  >
+    {/* Summary strip. Three numbers that describe the collection
+        rather than any one project. */}
+    <dl
+      class="mb-5 grid grid-cols-3 divide-x divide-line-2 rounded-lg border border-line-2 bg-surface"
+    >
+      <div class="px-3 py-2.5">
+        <dt class="label label-quiet text-label">Shipped or deployed</dt>
+        <dd class="numeric mt-1 text-body text-ink">
+          {count("deployed") + count("shipped")} / {projects.length}
+        </dd>
+      </div>
+      <div class="px-3 py-2.5">
+        <dt class="label label-quiet text-label">Has a baseline</dt>
+        <dd class="numeric mt-1 text-body text-ink">
+          {withBaseline} / {projects.length}
+        </dd>
+      </div>
+      <div class="px-3 py-2.5">
+        <dt class="label label-quiet text-label">Something to open</dt>
+        <dd class="numeric mt-1 text-body text-ink">
+          {withEvidence} / {projects.length}
+        </dd>
+      </div>
+    </dl>
+
+    {/*
+      Sliding-pill filter. role=tablist without panels would be
+      wrong, so these are plain buttons carrying aria-selected
+      inside a group labelled as a filter.
+
+      The strip scrolls on its own axis below the column width
+      rather than wrapping. Wrapping would put tabs on two rows and
+      the sliding pill reads offsetLeft off a single track, so a
+      second row would send it to the wrong place. Scrolling keeps
+      the track one line and the geometry correct.
+
+      -mx-4 px-4 lets it scroll edge to edge instead of stopping
+      inside the column's gutter, which reads as a cut-off row.
+    */}
+    <div class="scroll-strip -mx-4 mb-4 overflow-x-auto px-4">
+      <div
+        class="t-tabs inline-flex items-center gap-0.5 rounded-full border border-line-2 p-1" data-tabs
+        data-work-filter
+        role="group"
+        aria-label="Filter systems by maturity"
+      >
+        <span class="t-tabs-pill" data-immediate aria-hidden="true"></span>
+        {
+          tabs.map((t, i) => (
+            <button
+              type="button"
+              data-tab={t.value}
+              aria-selected={i === 0 ? "true" : "false"}
+              class:list={[
+                "relative z-10 rounded-full px-3 py-1 text-body whitespace-nowrap transition-colors duration-fast ease-out",
+                i === 0 ? "text-ink" : "text-ink-3",
+              ]}
+            >
+              {t.label}
+              <span class="numeric ml-1.5 text-label opacity-60">{t.n}</span>
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div data-work-rows>
+      <ProjectRows items={sorted} posters />
+    </div>
+
+    {/* Filtering to zero is reachable, so the state exists. It is
+        hidden by default and revealed by the script. */}
+    <div data-work-empty hidden class="well mt-3 text-center">
+      <p class="text-body text-ink">Nothing under that filter.</p>
+      <p class="mt-1 text-body text-ink-3">
+        There are only six systems here, so a filter can legitimately come up
+        empty.
+      </p>
+    </div>
+  </Band>
+</PageLayout>
+
+<style>
+  /* No visible scrollbar on the tab strip: a 2px bar under four
+     pills reads as a rendering artifact rather than an affordance,
+     and the overflow only exists on narrow viewports where the
+     gesture is a swipe. */
+  .scroll-strip {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scroll-strip::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  /*
+   * Filter the rendered rows. Rows are hidden with the `hidden`
+   * attribute rather than display:none in a class, so the row stays
+   * out of the accessibility tree as well as out of the layout.
+   *
+   * Collapsing a hidden row first means reopening the filter does
+   * not reveal a row that was left expanded off-screen.
+   */
+  const group = document.querySelector<HTMLElement>("[data-work-filter]");
+  const container = document.querySelector<HTMLElement>("[data-work-rows]");
+  const empty = document.querySelector<HTMLElement>("[data-work-empty]");
+
+  if (group && container) {
+    const rows = Array.from(
+      container.querySelectorAll<HTMLDetailsElement>("[data-maturity]")
+    );
+
+    group.addEventListener("tabchange", (e) => {
+      const value = (e as CustomEvent<{ value: string }>).detail.value;
+      let shown = 0;
+      rows.forEach((row) => {
+        const match = value === "all" || row.dataset.maturity === value;
+        if (!match) row.open = false;
+        row.hidden = !match;
+        if (match) shown++;
+      });
+      if (empty) empty.hidden = shown > 0;
+      /* The hairline between rows comes from `.rows > * + *`, and a
+         hidden first sibling would leave a stray top rule on the
+         first visible row. Toggling the container's own top border
+         keeps the ruling correct in every filter state. */
+      container
+        .querySelector(".rows")
+        ?.classList.toggle("border-t-0", shown === 0);
+    });
+  }
+</script>

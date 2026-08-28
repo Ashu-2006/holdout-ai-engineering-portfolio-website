@@ -1,0 +1,429 @@
+/**
+ * Generates public/resume.pdf from the same data the site renders.
+ *
+ * STACK CHOICE, stated rather than made silently:
+ *
+ * The realistic options were (a) headless Chromium printing the
+ * /resume route, (b) a PDF library such as pdfkit or pdf-lib, or
+ * (c) writing the PDF by hand against the base-14 fonts.
+ *
+ * Picked (c). A resume is text on a grid, which is the one document
+ * shape a hand-rolled writer handles well, and it keeps the build
+ * dependency-free and deterministic. (a) would mean shipping a
+ * ~300MB browser to CI to render one page, and (b) means a runtime
+ * dependency for roughly 200 lines of output.
+ *
+ * What this rules out: no embedded fonts, so the PDF is set in
+ * Helvetica and Courier rather than Geist, and text is limited to
+ * WinAnsi. Non-ASCII is transliterated below. If the resume ever
+ * needs real typography or a second column, switch to (a) and
+ * accept the dependency.
+ *
+ * Reads src/config/site.ts and src/data/work.ts by parsing them as
+ * modules is not possible from plain node without a TS loader, so
+ * the content is mirrored here explicitly and a test in the build
+ * step compares the two. Kept in one place: RESUME below.
+ *
+ * Run: node scripts/gen-resume-pdf.mjs
+ */
+
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+mkdirSync(join(ROOT, "public"), { recursive: true });
+
+/* ---- font metrics (base-14, units per 1000) --------------------
+   Widths are needed for line breaking. These are the standard AFM
+   values; Courier is monospaced at 600. */
+const HELV = "278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584"
+  .split(" ")
+  .map(Number);
+const HELVB = "278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584"
+  .split(" ")
+  .map(Number);
+
+const FONTS = {
+  regular: { res: "F1", widths: HELV },
+  bold: { res: "F2", widths: HELVB },
+  mono: { res: "F3", widths: null }, // Courier, fixed 600
+};
+
+/** Transliterate to WinAnsi-safe ASCII. See the header note. */
+function ascii(s) {
+  return String(s)
+    .replace(/∞/g, "now") // infinity, used for ongoing ranges
+    .replace(/[–—]/g, "-")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/á/g, "a")
+    .replace(/à/g, "a")
+    .replace(/Đ|đ/g, "D")
+    .replace(/í/g, "i")
+    .replace(/[^\x20-\x7e]/g, "");
+}
+
+function widthOf(text, font, size) {
+  const f = FONTS[font];
+  if (!f.widths) return text.length * 600 * (size / 1000);
+  let w = 0;
+  for (const ch of text) {
+    const c = ch.charCodeAt(0);
+    w += c >= 32 && c <= 126 ? f.widths[c - 32] : 556;
+  }
+  return (w * size) / 1000;
+}
+
+function wrap(text, font, size, maxW) {
+  const words = ascii(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (widthOf(test, font, size) > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/* ---- page geometry, in PDF points (72 per inch) ---------------- */
+const PAGE_W = 595.28; // A4
+const PAGE_H = 841.89;
+const M = 52; // margin
+const COL = PAGE_W - M * 2;
+const BOTTOM = 64; // reserve for the footer
+
+/* ---- content model -------------------------------------------
+   Mirrors src/config/site.ts and src/data/work.ts. The check at
+   the bottom of this file fails the build if the name, email or
+   project count drift apart, which is the drift that would
+   actually matter. */
+const RESUME = {
+  name: "Ashutosh Rana",
+  role: "AI Engineer",
+  contact: [
+    "ashutosh@armoriq.io",
+    "+1 555 0100",
+    "India",
+    "ashutoshrana.dev",
+  ],
+  summary:
+    "AI engineer reading two concurrent degrees, Smart Manufacturing Engineering at Example Institute of Technology and Data Science and AI at Example University. I build machine learning that ends up attached to a sensor or a process rather than to a notebook, and every result I report comes with the baseline it beat and the conditions under which it fails.",
+  availability: "Open to AI/ML internships for Summer 2027.",
+  sections: [
+    {
+      title: "Experience",
+      entries: [
+        {
+          head: "Undergraduate Research Assistant, Applied ML Lab, Example University",
+          meta: "Research / India / On-site / 08.2025 - now",
+          bullets: [
+            "Instrumented three CNC spindles with accelerometers and built the acquisition path from Arduino to a Postgres time-series table.",
+            "Trained a bearing-fault classifier on 41 hours of labelled vibration data. Baseline was a fixed RMS threshold at 0.71 F1; the model reached 0.89 F1 on a held-out machine it had never seen.",
+            "Wrote the failure-mode note the lab now hands to new students: the model degrades below 900 RPM because the fault signature falls under the noise floor.",
+          ],
+        },
+        {
+          head: "Competition Contributor, Kaggle",
+          meta: "Part-time / Remote / 01.2025 - now",
+          bullets: [
+            "Took part in three competitions, owning data cleaning and preprocessing for a two-person team.",
+            "Merged five source datasets into one feature table and wrote a row-for-row equivalence test against the previous pipeline before switching over.",
+            "Best finish: 539 of 3,300 entrants. The gap to the top 100 was feature engineering, not model choice, which is written up in the notebook.",
+          ],
+        },
+        {
+          head: "Machine Learning Intern, Nuvora Analytics",
+          meta: "Internship / Ahmedabad, India / Remote / 05.2026 - 07.2026",
+          bullets: [
+            "Built the review-triage classifier that now routes support tickets. 12,000 labelled reviews, 0.91 macro F1 against a 0.68 keyword baseline.",
+            "Quantized the deployed model to INT8, holding accuracy inside 0.4 points and dropping p95 latency from 240ms to 88ms.",
+            "Shipped the eval harness alongside it, so the next person can tell whether a change helped.",
+          ],
+        },
+        {
+          head: "Volunteer Teacher, Example Literacy Program",
+          meta: "Volunteer / India / On-site / 06.2023 - 04.2024",
+          bullets: [
+            "Taught basic language proficiency to domestic helpers and homemakers, weekly, across one academic year.",
+            "Twelve learners. Nine could read a utility bill unaided by the end, which was the only outcome we tracked.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Selected systems",
+      entries: [
+        {
+          head: "Spindle Sentinel",
+          meta: "Deployed / 09.2025 - now",
+          bullets: [
+            "Bearing-fault detection on live CNC spindles, running in the lab since January and catching two failures before they stopped a machine.",
+            "0.89 macro F1 on a held-out machine, 41h labelled vibration data, 3 fault classes, against 0.71 with a fixed RMS threshold.",
+            "Python / scikit-learn / Arduino / PostgreSQL / Spectrograms",
+          ],
+        },
+        {
+          head: "Grounded",
+          meta: "Shipped / 02.2026 - now",
+          bullets: [
+            "Retrieval over four semesters of lecture notes that answers with citations, or says it does not know.",
+            "0.84 faithfulness on 120 hand-labelled QA pairs, against 0.52 with embedding-only retrieval. Refusal rate on unanswerable questions went from 0 to 88 percent.",
+            "Python / BM25 / Embeddings / RRF / FastAPI",
+          ],
+        },
+        {
+          head: "Review Triage",
+          meta: "Deployed / 05.2026 - 07.2026",
+          bullets: [
+            "Sentiment and intent classifier routing incoming support reviews, replacing a keyword rule set.",
+            "0.91 macro F1 on 12,000 labelled reviews across 5 classes, against 0.68 for the rules it replaced. INT8 serving cut p95 latency from 240ms to 88ms for 0.4 points of accuracy.",
+            "Python / Hugging Face / Fine-tuning / INT8 / Docker",
+          ],
+        },
+        {
+          head: "Edge Ladder",
+          meta: "Prototype / 03.2026 - now",
+          bullets: [
+            "A measured comparison of four precisions on one model, so the accuracy-for-latency trade stops being a guess.",
+            "INT8 gives 2.7x throughput for 0.4 points of accuracy. INT4 gives 3.9x for 6.1 points, which no product should accept.",
+            "PyTorch / Quantization / Benchmarking",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Education",
+      entries: [
+        {
+          head: "B.Tech, Computer Science, Example Institute of Technology",
+          meta: "2024 - 2028",
+          bullets: [
+            "Manufacturing systems, control and instrumentation. Taken concurrently with the degree below.",
+          ],
+        },
+        {
+          head: "BS (Hons), Data Science and AI, Example University",
+          meta: "2024 - 2028",
+          bullets: ["Statistics, ML theory, and the mathematics under the libraries."],
+        },
+        {
+          head: "Example Secondary School",
+          meta: "Class XII 2024  /  Class X 2022",
+          bullets: [],
+        },
+      ],
+    },
+    {
+      title: "Skills and tools",
+      entries: [
+        { head: "Languages", meta: "", bullets: ["Python, Java, C++, C, SQL"] },
+        { head: "ML and data", meta: "", bullets: ["scikit-learn, NumPy, Pandas, Matplotlib, exploratory data analysis"] },
+        { head: "Serving and infra", meta: "", bullets: ["PostgreSQL, Hugging Face, Docker, Bash, Git"] },
+        { head: "Applied AI", meta: "", bullets: ["Prompt engineering, retrieval, eval harnesses, quantization"] },
+        { head: "Hardware", meta: "", bullets: ["Arduino, sensor data acquisition, robotics, signal processing"] },
+        { head: "Foundations", meta: "", bullets: ["Linear algebra, probability, statistics, optimization"] },
+      ],
+    },
+    {
+      title: "Certifications",
+      entries: [
+        { head: "Kaggle", meta: "2025", bullets: ["Python  /  Intro to Machine Learning  /  Pandas"] },
+      ],
+    },
+  ],
+};
+
+/* ---- layout engine -------------------------------------------- */
+const pages = [];
+let ops = [];
+let y = 0;
+
+function newPage() {
+  if (ops.length) pages.push(ops);
+  ops = [];
+  y = PAGE_H - M;
+}
+
+function esc(s) {
+  return s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function text(str, { font = "regular", size = 9.5, x = M, gray = 0 } = {}) {
+  ops.push(
+    `BT /${FONTS[font].res} ${size} Tf ${gray} g 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (${esc(ascii(str))}) Tj ET`
+  );
+}
+
+/** Right-aligned, for the meta column. */
+function textRight(str, { font = "mono", size = 8.5, gray = 0.45 } = {}) {
+  const w = widthOf(ascii(str), font, size);
+  ops.push(
+    `BT /${FONTS[font].res} ${size} Tf ${gray} g 1 0 0 1 ${(PAGE_W - M - w).toFixed(2)} ${y.toFixed(2)} Tm (${esc(ascii(str))}) Tj ET`
+  );
+}
+
+function rule(gray = 0.8) {
+  ops.push(
+    `${gray} G 0.5 w ${M} ${y.toFixed(2)} m ${(PAGE_W - M).toFixed(2)} ${y.toFixed(2)} l S`
+  );
+}
+
+function need(h) {
+  if (y - h < BOTTOM) newPage();
+}
+
+function paragraph(str, { font = "regular", size = 9.5, lead = 12.5, x = M, w = COL, gray = 0.15 } = {}) {
+  for (const line of wrap(str, font, size, w)) {
+    need(lead);
+    text(line, { font, size, x, gray });
+    y -= lead;
+  }
+}
+
+function bullet(str) {
+  const indent = 10;
+  const lines = wrap(str, "regular", 9.5, COL - indent);
+  lines.forEach((line, i) => {
+    need(12.5);
+    if (i === 0) {
+      ops.push(`0.55 g ${(M + 2).toFixed(2)} ${(y + 3).toFixed(2)} 1.6 1.6 re f`);
+    }
+    text(line, { size: 9.5, x: M + indent, gray: 0.2 });
+    y -= 12.5;
+  });
+}
+
+/* ---- compose --------------------------------------------------- */
+newPage();
+
+text(RESUME.name, { font: "bold", size: 20 });
+y -= 15;
+text(`${RESUME.role}  /  Dual degree in progress`, {
+  font: "mono",
+  size: 8.5,
+  gray: 0.4,
+});
+y -= 13;
+text(RESUME.contact.join("   /   "), { font: "mono", size: 8.5, gray: 0.25 });
+y -= 16;
+rule(0.75);
+y -= 14;
+
+paragraph(RESUME.summary, { size: 9.5, lead: 13 });
+y -= 3;
+text(RESUME.availability, { font: "bold", size: 9, gray: 0.1 });
+y -= 20;
+
+for (const section of RESUME.sections) {
+  need(46);
+  text(section.title.toUpperCase(), { font: "bold", size: 9, gray: 0 });
+  y -= 5;
+  rule(0.8);
+  y -= 14;
+
+  for (const entry of section.entries) {
+    need(30);
+    /* Head and meta on one baseline: head left, meta right. */
+    text(entry.head, { font: "bold", size: 10 });
+    if (entry.meta) textRight(entry.meta);
+    y -= 13;
+    for (const b of entry.bullets) bullet(b);
+    y -= 7;
+  }
+  y -= 5;
+}
+
+/* Footer on every page, added after composition so the page count
+   is known. */
+pages.push(ops);
+const total = pages.length;
+pages.forEach((pageOps, i) => {
+  const label = `${RESUME.name}  /  page ${i + 1} of ${total}  /  ashutoshrana.dev`;
+  const w = widthOf(label, "mono", 7.5);
+  pageOps.push(
+    `BT /F3 7.5 Tf 0.55 g 1 0 0 1 ${((PAGE_W - w) / 2).toFixed(2)} ${(M - 18).toFixed(2)} Tm (${esc(label)}) Tj ET`
+  );
+});
+
+/* ---- serialise ------------------------------------------------- */
+const objects = [];
+const push = (body) => {
+  objects.push(body);
+  return objects.length; // 1-indexed object number
+};
+
+/* Object numbers are allocated up front so /Kids can reference the
+   page objects before their content streams exist. */
+const catalogNo = 1;
+const pagesNo = 2;
+const fontNos = { F1: 3, F2: 4, F3: 5 };
+const firstPageNo = 6;
+const pageNos = pages.map((_, i) => firstPageNo + i * 2);
+const contentNos = pages.map((_, i) => firstPageNo + i * 2 + 1);
+
+push(`<< /Type /Catalog /Pages ${pagesNo} 0 R >>`);
+push(
+  `<< /Type /Pages /Count ${total} /Kids [${pageNos.map((n) => `${n} 0 R`).join(" ")}] >>`
+);
+push(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>`);
+push(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>`);
+push(`<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>`);
+
+pages.forEach((pageOps, i) => {
+  push(
+    `<< /Type /Page /Parent ${pagesNo} 0 R /MediaBox [0 0 ${PAGE_W.toFixed(2)} ${PAGE_H.toFixed(2)}] ` +
+      `/Resources << /Font << /F1 ${fontNos.F1} 0 R /F2 ${fontNos.F2} 0 R /F3 ${fontNos.F3} 0 R >> >> ` +
+      `/Contents ${contentNos[i]} 0 R >>`
+  );
+  const stream = pageOps.join("\n");
+  push(`<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}\nendstream`);
+});
+
+let pdf = "%PDF-1.4\n";
+const offsets = [];
+objects.forEach((body, i) => {
+  offsets.push(Buffer.byteLength(pdf, "latin1"));
+  pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
+});
+const xrefAt = Buffer.byteLength(pdf, "latin1");
+pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+offsets.forEach((o) => {
+  pdf += `${String(o).padStart(10, "0")} 00000 n \n`;
+});
+pdf +=
+  `trailer\n<< /Size ${objects.length + 1} /Root ${catalogNo} 0 R ` +
+  `/Info << /Title (${RESUME.name} - Resume) /Author (${RESUME.name}) /Producer (scripts/gen-resume-pdf.mjs) >> >>\n` +
+  `startxref\n${xrefAt}\n%%EOF\n`;
+
+const out = join(ROOT, "public", "resume.pdf");
+writeFileSync(out, Buffer.from(pdf, "latin1"));
+
+/* ---- drift check ----------------------------------------------
+   The one thing worth failing the build over: this file mirrors
+   content that lives in TypeScript, and a mirror that silently
+   disagrees with its source is worse than no mirror. */
+const site = readFileSync(join(ROOT, "src", "config", "site.ts"), "utf8");
+const work = readFileSync(join(ROOT, "src", "data", "work.ts"), "utf8");
+const problems = [];
+if (!site.includes(RESUME.name)) problems.push("name does not match site.ts");
+if (!site.includes(RESUME.contact[0])) problems.push("email does not match site.ts");
+const projectCount = (work.match(/^\s{4}slug: "/gm) || []).length;
+if (projectCount !== 6) problems.push(`work.ts has ${projectCount} projects, expected 6`);
+
+if (problems.length) {
+  console.error("resume PDF drift check FAILED:");
+  problems.forEach((p) => console.error("  - " + p));
+  process.exit(1);
+}
+
+console.log(
+  `wrote public/resume.pdf, ${total} page(s), ${(Buffer.byteLength(pdf, "latin1") / 1024).toFixed(1)} KB`
+);
+console.log("drift check passed: name, email and project count agree with src/");

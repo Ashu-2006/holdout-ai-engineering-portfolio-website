@@ -1,15 +1,115 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import About from "../components/About.astro";
-import Folder from "../components/Folder.astro";
-import { collections } from "../data/collections";
+/**
+ * Home.
+ *
+ * Section order follows the reference (Figma 1:14875) because the
+ * order is the argument: identity, then verifiable activity, then
+ * who he is, then the work, then the evidence around it. A reviewer
+ * who leaves after two screens has still seen a name, a location, a
+ * live clock and a year of commits.
+ */
+import { getCollection } from "astro:content";
+import PageLayout from "../layouts/PageLayout.astro";
+import Band from "../components/ui/Band.astro";
+import Hero from "../components/blocks/Hero.astro";
+import IdentityGrid from "../components/blocks/IdentityGrid.astro";
+import Heatmap from "../components/blocks/Heatmap.astro";
+import Greeting from "../components/blocks/Greeting.astro";
+import ExperienceList from "../components/blocks/ExperienceList.astro";
+import ProjectRows from "../components/blocks/ProjectRows.astro";
+import StackTable from "../components/blocks/StackTable.astro";
+import FannedStrip from "../components/blocks/FannedStrip.astro";
+import PostRows from "../components/blocks/PostRows.astro";
+import { projects } from "../data/work";
+import { machineHome } from "../lib/machine";
+
+/* Featured first, then by recency. The home page shows three: a
+   short list a reviewer will actually read beats a complete one
+   they will scroll past. */
+const featured = [...projects]
+  .sort((a, b) => Number(b.featured) - Number(a.featured) || b.start.localeCompare(a.start))
+  .slice(0, 3);
+
+const posts = (await getCollection("posts"))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .filter((p) => p.data.status === "live")
+  .slice(0, 3);
+
+const notes = [
+  { src: "/mock/note-lab.svg", alt: "The spindle test rig on its first instrumented run" },
+  { src: "/mock/note-board.svg", alt: "An Arduino board mid-repair on a desk" },
+  { src: "/mock/note-plot.svg", alt: "A training curve on a laptop screen, finally converging" },
+  { src: "/mock/note-campus.svg", alt: "The walk back from the lab at dusk" },
+];
+
+/* MACHINE view of this page, built from the same objects the
+   human view below renders. See lib/machine.ts. */
+const machineDoc = machineHome(
+  posts.map((p) => ({ title: p.data.title, description: p.data.description, slug: p.id }))
+);
 ---
 
-<Layout>
-  <main class="space-y-16 py-8">
-    <About />
-    <div class="grid grid-cols-2 gap-6">
-      {collections.map((collection) => <Folder collection={collection} />)}
-    </div>
-  </main>
-</Layout>
+<PageLayout machine={machineDoc} section="home">
+  <Hero />
+
+  {/* Identity. No heading: the grid's own icons label every row,
+      and a heading here would just repeat the hero. */}
+  <Band>
+    <IdentityGrid />
+  </Band>
+
+  <Band>
+    <Heatmap fig={1} />
+  </Band>
+
+  <Band>
+    <Greeting />
+  </Band>
+
+  <Band
+    id="experience"
+    title="Experience"
+    note="Four places, one of them unpaid and one of them a leaderboard. Expand a row for what actually changed."
+  >
+    <ExperienceList />
+  </Band>
+
+  <Band
+    id="work"
+    title="Selected systems"
+    count={projects.length}
+    note="Every entry states its baseline and the conditions under which it fails. Three of six shown."
+    action={{ label: "All systems", href: "/work" }}
+  >
+    <ProjectRows items={featured} openFirst posters />
+    <a slot="footer" href="/work" class="pill">
+      See all {projects.length} systems
+      <svg viewBox="0 0 16 16" class="size-3.5" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 8h10M9 4l4 4-4 4" />
+      </svg>
+    </a>
+  </Band>
+
+  {/* Field notes. The one non-instrument block: a small stack of
+      prints, deliberately physical against an otherwise ruled page. */}
+  <Band id="notes" title="Field notes" note="Photos from the lab and the walk home.">
+    <FannedStrip
+      items={notes}
+      caption="Shot on a phone, in a lab, mostly at the wrong time of day."
+      action={{ label: "More", href: "/writing" }}
+    />
+  </Band>
+
+  <Band
+    id="writing"
+    title="Writing"
+    note="Mostly about measurement, and about the ways a good number can be a lie."
+    action={{ label: "All writing", href: "/writing" }}
+  >
+    <PostRows items={posts} />
+  </Band>
+
+  <Band id="stack" title="Stack" note="Grouped by the job, not by the language.">
+    <StackTable />
+  </Band>
+</PageLayout>

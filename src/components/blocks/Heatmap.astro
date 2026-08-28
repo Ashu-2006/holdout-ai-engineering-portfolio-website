@@ -1,0 +1,206 @@
+---
+/**
+ * Contribution heatmap, from Figma 1:15007.
+ *
+ * The reference pairs the grid with a numbered "Fig. N" caption and
+ * a Less/More legend, which is what makes it read as a figure in a
+ * document rather than a widget. That framing is the reason it is
+ * worth including at all: a bare grid is a vanity metric, a figure
+ * with a caption and a source is evidence.
+ *
+ * MOCK DATA, seeded so a rebuild is byte-identical. Shaped like a
+ * real student's year rather than uniform noise: quiet in exam
+ * weeks, dense in the two project sprints, near-zero on most
+ * Sundays.
+ */
+interface Props {
+  /** Figure number, so captions across a page stay in sequence. */
+  fig?: number;
+  total?: number;
+  range?: string;
+  source?: { label: string; url: string };
+}
+const {
+  fig = 1,
+  total = 1284,
+  range = "01.09.2025 - 27.08.2026",
+  source = { label: "GitHub", url: "https://github.com/" },
+} = Astro.props;
+
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const WEEKS = 52;
+const r = rng(20260827);
+
+/* Two sprints and two exam troughs, expressed as week ranges. */
+const sprint = (w: number) => (w > 8 && w < 17) || (w > 30 && w < 41);
+const exams = (w: number) => (w > 20 && w < 25) || (w > 44 && w < 48);
+
+const cells: { level: number; week: number; day: number }[] = [];
+for (let w = 0; w < WEEKS; w++) {
+  for (let d = 0; d < 7; d++) {
+    let p = 0.42;
+    if (sprint(w)) p = 0.86;
+    if (exams(w)) p = 0.12;
+    if (d === 0) p *= 0.28; // Sundays
+    const hit = r() < p;
+    const level = !hit ? 0 : 1 + Math.floor(r() * (sprint(w) ? 4 : 3));
+    cells.push({ level: Math.min(4, level), week: w, day: d });
+  }
+}
+const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
+---
+
+<figure class="reveal">
+  {/*
+    The grid scrolls on its own axis rather than shrinking the
+    cells: below ~700px a 52-week grid either becomes unreadable
+    2px squares or forces the page to scroll sideways, and both are
+    worse than an internally scrolling figure.
+  */}
+  <div class="-mx-1 overflow-x-auto pb-1">
+    <div
+      class="heat grid min-w-[680px] grid-flow-col grid-rows-7 gap-[3px] px-1"
+      role="img"
+      aria-label={`${total} contributions between ${range}`}
+    >
+      {
+        cells.map((c) => (
+          <span
+            class:list={[
+              "heat-cell size-[11px] rounded-[2px]",
+              c.level === 0 ? "heat-empty" : ["heat-on", levels[c.level]],
+            ]}
+            style={`--w:${c.week}`}
+          />
+        ))
+      }
+    </div>
+  </div>
+
+  <figcaption
+    class="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+  >
+    <p class="text-body text-ink-2">
+      <span class="label">Fig. {fig}.</span>
+      {" "}
+      <span class="numeric text-ink">{total.toLocaleString("en-US")}</span>
+      {" "}contributions, <span class="numeric">{range}</span>. Source:{" "}
+      <a href={source.url} class="link-ref" rel="noopener">{source.label}</a>.
+    </p>
+
+    <p class="flex items-center gap-1.5 text-label text-ink-3">
+      Less
+      {
+        [0, 1, 2, 3, 4].map((l) => (
+          <span
+            class:list={[
+              "size-[10px] rounded-[2px]",
+              l === 0 ? "heat-empty" : ["heat-on", levels[l]],
+            ]}
+          />
+        ))
+      }
+      More
+    </p>
+  </figcaption>
+</figure>
+
+<style>
+  .heat-empty {
+    background-color: color-mix(in oklab, var(--color-ink) 6%, transparent);
+  }
+  /*
+   * Monochrome, like the reference's own heatmap, and not the
+   * conventional green.
+   *
+   * Two reasons. The design reserves chroma for state and for the
+   * artifact posters, and a 364-cell grid in signal green is by far
+   * the loudest object on the page, which puts the emphasis on
+   * "look how much I commit" rather than on the work. In ink it
+   * reads as what it is: a density plot.
+   */
+  .heat-on {
+    background-color: var(--color-ink);
+  }
+
+  /*
+   * Column-by-column wipe on first reveal. The delay is driven off
+   * the week index, so the year fills left to right like a
+   * timeline rather than all at once. Capped at 52 columns times
+   * 8ms, which is 416ms: inside the reveal budget, so it never
+   * holds up reading.
+   */
+  .heat-cell {
+    opacity: 0;
+    animation: heat-in 260ms var(--ease-out) both;
+    animation-delay: calc(var(--w) * 8ms);
+  }
+  @keyframes heat-in {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  /* The utility opacity classes have to win over the keyframe's
+     end state, so they are re-applied here at the same specificity
+     the animation resolves at. */
+  .heat-cell.opacity-25 {
+    animation-name: heat-in-25;
+  }
+  .heat-cell.opacity-45 {
+    animation-name: heat-in-45;
+  }
+  .heat-cell.opacity-70 {
+    animation-name: heat-in-70;
+  }
+  @keyframes heat-in-25 {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    to {
+      opacity: 0.25;
+      transform: none;
+    }
+  }
+  @keyframes heat-in-45 {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    to {
+      opacity: 0.45;
+      transform: none;
+    }
+  }
+  @keyframes heat-in-70 {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    to {
+      opacity: 0.7;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .heat-cell {
+      animation: none;
+      opacity: 1;
+    }
+  }
+</style>

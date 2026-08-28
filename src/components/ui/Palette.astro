@@ -1,0 +1,191 @@
+---
+/**
+ * Command palette. Ctrl/Cmd K, or "/".
+ *
+ * A native <dialog>, so focus trapping, Escape, inert background
+ * and the top layer come from the platform rather than from 200
+ * lines of focus-management JavaScript.
+ *
+ * The item list is built at build time from the same data the pages
+ * render, so it can never advertise a route that does not exist.
+ * Filtering is substring matching over a precomputed haystack that
+ * includes each item's kind and stack, which means "int8" finds
+ * Review Triage without Review Triage mentioning int8 in its title.
+ */
+import { Icon } from "astro-icon/components";
+import { projects } from "../../data/work";
+import { dockItems } from "../../config/site";
+
+const items: {
+  group: string;
+  label: string;
+  meta: string;
+  href: string;
+  icon: string;
+  hay: string;
+}[] = [
+  ...dockItems.map((d) => ({
+    group: "Go to",
+    label: d.label,
+    meta: d.href,
+    href: d.href,
+    icon: d.icon,
+    hay: `${d.label} ${d.href} navigate go to`,
+  })),
+  /* Resume left the dock (the CV download covers it there) but a
+     palette exists to reach everything, so it stays here. */
+  {
+    group: "Go to",
+    label: "Resume",
+    meta: "/resume",
+    href: "/resume",
+    icon: "ph:read-cv-logo",
+    hay: "resume cv experience education /resume navigate go to",
+  },
+  ...projects.map((p) => ({
+    group: "Systems",
+    label: p.title,
+    meta: `${p.maturity} / ${p.metric.value} ${p.metric.label}`,
+    href: `/work/${p.slug}`,
+    icon: p.icon,
+    hay: `${p.title} ${p.maturity} ${p.outcome} ${p.chips.join(" ")} ${p.metric.label}`,
+  })),
+];
+
+const groups = [...new Set(items.map((i) => i.group))];
+---
+
+<dialog
+  data-palette
+  class="palette no-print m-0 w-full max-w-[540px] border border-line bg-surface p-0 text-ink-2 backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+  aria-label="Command palette"
+>
+  <div class="flex items-center gap-2.5 border-b border-line-2 px-3.5 py-3">
+    <Icon name="ph:magnifying-glass" class="size-4 shrink-0 text-ink-3" aria-hidden="true" />
+    <input
+      data-palette-input
+      type="text"
+      placeholder="Search systems, pages, anything"
+      autocomplete="off"
+      spellcheck="false"
+      class="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-4"
+    />
+    <kbd class="kbd">ESC</kbd>
+  </div>
+
+  <div data-palette-list class="max-h-[min(60vh,420px)] overflow-y-auto p-1.5">
+    {
+      groups.map((group) => (
+        <div class="palette-group">
+          <p class="label label-quiet px-2 pt-2 pb-1 text-label">{group}</p>
+          {items
+            .filter((i) => i.group === group)
+            .map((item) => (
+              <div data-palette-item={item.hay}>
+                <a
+                  href={item.href}
+                  class="palette-row flex items-center gap-2.5 rounded-md px-2 py-2"
+                >
+                  <span
+                    class="grid size-6 shrink-0 place-items-center rounded-md border border-line-2 text-ink-3"
+                    aria-hidden="true"
+                  >
+                    <Icon name={item.icon} class="size-3.5" />
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-body text-ink">
+                    {item.label}
+                  </span>
+                  <span class="numeric shrink-0 text-label text-ink-4">
+                    {item.meta}
+                  </span>
+                </a>
+              </div>
+            ))}
+        </div>
+      ))
+    }
+    <p data-palette-empty hidden class="px-3 py-8 text-center text-body text-ink-3">
+      Nothing matches. The search covers titles, stacks and outcomes.
+    </p>
+  </div>
+
+  <div
+    class="flex items-center justify-between gap-3 border-t border-line-2 px-3.5 py-2"
+  >
+    <p class="flex items-center gap-1.5 text-label text-ink-4">
+      <kbd class="kbd">&#8593;</kbd><kbd class="kbd">&#8595;</kbd> to move
+      <kbd class="kbd ml-1">&#8629;</kbd> to open
+    </p>
+    <p class="label label-quiet text-label">1-5 jumps directly</p>
+  </div>
+</dialog>
+
+<style>
+  /*
+   * A <dialog> is centred by the UA's default margin:auto, which
+   * only works if it has no explicit margin. m-0 above removes it,
+   * so the position is set here instead: pinned toward the top,
+   * because a palette that opens at the vertical centre puts the
+   * results under the user's hands on a laptop.
+   */
+  .palette {
+    position: fixed;
+    top: 12vh;
+    left: 50%;
+    translate: -50% 0;
+    border-radius: var(--radius-card);
+    /* No shadow: the dimmed ::backdrop already separates the palette
+       from the page, and elevation language is not used anywhere on
+       this site. */
+    border: 1px solid var(--color-line);
+  }
+
+  /* transitions.dev / 06-modal: scale up on open. ::backdrop is
+     animated separately because it is not a descendant. */
+  .palette[open] {
+    animation: palette-in var(--duration-moderate) var(--ease-out);
+  }
+  .palette[open]::backdrop {
+    animation: fade-in var(--duration-fast) var(--ease-out);
+  }
+  @keyframes palette-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Hovered and keyboard-active rows share one treatment, so the
+     pointer and the arrow keys cannot disagree about what is
+     selected. */
+  .palette-row:hover,
+  [data-active] .palette-row {
+    background-color: var(--color-raised);
+  }
+
+  /* A group whose every row is filtered out hides its own heading.
+     :has() does the whole job; the alternative is bookkeeping in
+     JS for something that is purely presentational. */
+  .palette-group:not(:has([data-palette-item]:not([hidden]))) {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palette[open],
+    .palette[open]::backdrop {
+      animation: none;
+    }
+  }
+</style>

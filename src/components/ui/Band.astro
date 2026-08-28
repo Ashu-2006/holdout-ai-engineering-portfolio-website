@@ -1,0 +1,90 @@
+---
+/**
+ * A band is one section of a page.
+ *
+ * Structure taken from the reference's section rhythm (Figma
+ * 1:14875): heading with an optional superscript count, an optional
+ * description line, the content, and an optional trailing pill.
+ * Sections are separated by a full-bleed hairline rather than by
+ * large air, which is what makes the design dense without feeling
+ * crowded. The rule is drawn by `.band + .band::before` in
+ * theme.css, so a band never draws its own separator and two
+ * adjacent bands can never double it.
+ *
+ * `flush` opts out of the centred column for content that has to
+ * bleed to the viewport edge, like the poster strip or the heatmap.
+ */
+interface Props {
+  id?: string;
+  title?: string;
+  /** Rendered as a raised mono superscript, e.g. "(6)". */
+  count?: number | string;
+  note?: string;
+  /** Trailing pill: label plus href. */
+  action?: { label: string; href: string };
+  /** Content bleeds full width; the band supplies no column. */
+  flush?: boolean;
+  /** Heading level, so a page keeps one h1 and a sane outline. */
+  as?: "h1" | "h2";
+  class?: string;
+}
+
+const {
+  id,
+  title,
+  count,
+  note,
+  action,
+  flush = false,
+  as: Tag = "h2",
+  class: className,
+  /*
+   * Left untyped on purpose. Astro binds the local `Props`
+   * interface to the component's public props at compile time, so
+   * casting here (`Astro.props as Props`) actually REMOVES that
+   * binding and every call site loses its prop types. The
+   * "'Props' is declared but never used" hint is a known false
+   * positive; the binding is real.
+   */
+} = Astro.props;
+---
+
+<section id={id} class:list={["band scroll-mt-16", className]}>
+  {
+    title && (
+      <div class="column">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <Tag class="band-title">
+            {title}
+            {count !== undefined && <span class="band-count">({count})</span>}
+          </Tag>
+          {action && (
+            <a
+              href={action.href}
+              class="label transition-colors duration-fast ease-out hover:text-ink"
+            >
+              {action.label} &#8594;
+            </a>
+          )}
+        </div>
+        {note && (
+          <p class="prose-measure mt-2 text-body">
+            {note}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  <div class:list={[!flush && "column", title && "mt-5"]}>
+    <slot />
+  </div>
+
+  {
+    Astro.slots.has("footer") && (
+      <div class="column mt-6 flex justify-center">
+        <slot name="footer" />
+      </div>
+    )
+  }
+</section>

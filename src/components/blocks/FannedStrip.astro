@@ -1,0 +1,145 @@
+---
+/**
+ * Fanned photo strip, from Figma 1:8358 and 1:8158.
+ *
+ * Four portrait cards at 184x248, 10px radius, a thick white
+ * border, alternating +/-2 degrees of rotation, overlapping. It is
+ * the one deliberately physical object on the site: everything else
+ * is ruled and flat, so a small stack of prints reads as a change
+ * of register rather than as inconsistency.
+ *
+ * The border stays white in both themes on purpose. It is standing
+ * in for a photographic print, and a print does not change colour
+ * when you turn the lights off.
+ *
+ * Hover spreads the fan: siblings push away from the hovered card
+ * in both directions, driven by initFan in scripts/site.ts, which
+ * needs the index to compute direction and falloff.
+ */
+interface Props {
+  items: { src: string; alt: string }[];
+  caption?: string;
+  action?: { label: string; href: string };
+}
+const { items, caption, action } = Astro.props;
+
+/* Alternating tilt plus a small vertical jitter, so the stack looks
+   set down by hand rather than distributed by a loop. */
+const tilt = [-2, 2, -2, 2, -1.5, 1.5];
+const bump = [0, -8, 4, -7, 2, -5];
+---
+
+<div>
+  <div
+    class="fan flex items-center justify-center py-2" data-fan
+    role="group"
+    aria-label={caption ?? "Field notes"}
+  >
+    {
+      items.map((item, i) => (
+        <figure
+          class="fan-card" data-fan-card
+          style={`--tilt:${tilt[i % tilt.length]}deg; --bump:${bump[i % bump.length]}px; --i:${i}; z-index:${i};`}
+        >
+          <img
+            src={item.src}
+            alt={item.alt}
+            width="368"
+            height="496"
+            loading="lazy"
+            decoding="async"
+            class="fan-img block h-full w-full rounded-[6px] object-cover"
+          />
+        </figure>
+      ))
+    }
+  </div>
+
+  {
+    (caption || action) && (
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        {caption && <p class="text-body text-ink-3">{caption}</p>}
+        {action && (
+          <a
+            href={action.href}
+            class="label transition-colors duration-fast ease-out hover:text-ink"
+          >
+            {action.label} &#8594;
+          </a>
+        )}
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .fan-card {
+    position: relative;
+    width: 184px;
+    height: 248px;
+    flex: none;
+    padding: 5px;
+    border-radius: var(--radius-photo);
+    background-color: #ffffff;
+    /* No cast shadow, even here. The print reads as an object from
+       its white mat, its tilt and its overlap; a hairline marks the
+       edge where a shadow used to. */
+    border: 1px solid rgb(0 0 0 / 0.14);
+    /* Overlap. The push variable is written by initFan on hover. */
+    margin-inline: -22px;
+    transform: translateX(var(--fan-push, 0px)) translateY(var(--bump))
+      rotate(var(--tilt));
+    transition: transform var(--duration-moderate) var(--ease-out);
+    will-change: transform;
+  }
+  /*
+   * The loading state, which is a real state here.
+   *
+   * The card is white because it is standing in for a print, so an
+   * image that has not arrived yet leaves a blank white slab: the
+   * single worst-looking failure on the page. A dark plate under
+   * the image means the unloaded state reads as an empty frame,
+   * which is what an empty frame should look like.
+   */
+  .fan-img {
+    background-color: #17171a;
+  }
+
+  .fan-card:first-child {
+    margin-left: 0;
+  }
+  .fan-card:last-child {
+    margin-right: 0;
+  }
+
+  /* The hovered card straightens, rises and comes to the front. It
+     is the only card that changes rotation, which is what makes it
+     read as picked up rather than as the whole stack shifting. */
+  @media (hover: hover) and (pointer: fine) {
+    .fan-card:hover {
+      transform: translateY(calc(var(--bump) - 14px)) rotate(0deg) scale(1.03);
+      z-index: 20 !important;
+    }
+  }
+
+  /* Below the column width four 184px cards plus overlap no longer
+     fit, so the strip scrolls horizontally with snap points instead
+     of the cards shrinking to thumbnails. */
+  @media (max-width: 40rem) {
+    .fan {
+      justify-content: flex-start;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-inline: 1rem;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .fan::-webkit-scrollbar {
+      display: none;
+    }
+    .fan-card {
+      scroll-snap-align: center;
+      margin-inline: -14px;
+    }
+  }
+</style>

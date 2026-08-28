@@ -1,0 +1,102 @@
+---
+/**
+ * About block, from Figma 1:15789.
+ *
+ * The reference heads this section with a handwritten "Good
+ * morning". It is the one warm note in an otherwise instrument-like
+ * page, and it works because it is time-aware: it greets you
+ * according to YOUR clock, so it reads as addressed rather than
+ * decorative.
+ *
+ * Server-rendered from the site's own timezone first, then
+ * corrected client-side to the visitor's. Without the correction a
+ * visitor in London gets "Good evening" at breakfast, which is
+ * worse than no greeting at all.
+ */
+import { site } from "../../config/site";
+
+const hour = Number(
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: site.timezone,
+    hour: "2-digit",
+    hour12: false,
+  }).format(new Date())
+);
+const initial =
+  hour < 5 ? "Still up?" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+---
+
+<div>
+  <p
+    class="text-title font-medium text-ink" data-greeting
+  >
+    {initial}
+  </p>
+
+  <ul class="mt-4 space-y-3">
+    <li class="bullet prose-measure">
+      I am <strong class="font-medium text-ink">{site.name}</strong>, an AI
+      engineer in {site.location}, reading two degrees at once:{" "}
+      <span class="text-ink">Computer Science</span> at Example Institute of
+      Technology and <span class="text-ink">Data Science and AI</span> at
+      Example University.
+    </li>
+    <li class="bullet prose-measure">
+      The combination is the point. Most of my machine learning ends up attached
+      to a sensor, a machine, or a process that will keep running whether or not
+      the model is right, which is a different discipline from getting a good
+      number in a notebook.
+    </li>
+    <li class="bullet prose-measure">
+      What I actually care about is measurement. Every project on this site
+      states its baseline, its evaluation set, and the conditions under which it
+      fails. A metric without those three is a decoration.
+    </li>
+    <li class="bullet prose-measure">
+      Currently: bearing-fault detection on live CNC spindles at the{" "}
+      <span class="text-ink">Smart Manufacturing Lab</span>, and looking for an
+      AI/ML internship for summer 2027.
+    </li>
+  </ul>
+</div>
+
+<style>
+  /* Bullets are drawn rather than list-style, so the dot can be a
+     token colour and sit on the first line's optical centre. */
+  .bullet {
+    position: relative;
+    padding-left: 1.125rem;
+    font-size: var(--text-body);
+    line-height: 1.5rem;
+    letter-spacing: 0.16px;
+  }
+  .bullet::before {
+    content: "";
+    position: absolute;
+    left: 0.125rem;
+    top: 0.625rem;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px
+    ;
+    background-color: var(--color-ink-4);
+  }
+</style>
+
+<script>
+  /* Correct the greeting to the VISITOR's clock. The server can
+     only know Ashutosh's timezone, and this line is addressed to
+     whoever is reading it. */
+  const el = document.querySelector<HTMLElement>("[data-greeting]");
+  if (el) {
+    const h = new Date().getHours();
+    el.textContent =
+      h < 5
+        ? "Still up?"
+        : h < 12
+          ? "Good morning"
+          : h < 18
+            ? "Good afternoon"
+            : "Good evening";
+  }
+</script>

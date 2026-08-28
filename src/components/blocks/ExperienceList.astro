@@ -1,0 +1,128 @@
+---
+/**
+ * Experience, from Figma 1:18100.
+ *
+ * Grouped by organisation, then by role inside it, because two
+ * roles at one employer read as one relationship and a flat list
+ * makes them look like two jobs. The left rail connects the roles
+ * under an org, which is what carries that grouping visually
+ * without a box.
+ *
+ * Disclosure is a native <details>, not a button plus data-open.
+ * The grid-rows animation from transitions.dev works the same on
+ * [open], and the platform then gives us the semantics, the
+ * keyboard handling, and content that is still reachable with no
+ * JavaScript. It also means every panel prints open, which matters
+ * because a printed page cannot be expanded.
+ *
+ * The first role starts open: a collapsed-by-default list makes a
+ * reviewer work for the first piece of evidence on the page.
+ */
+import { Icon } from "astro-icon/components";
+import { experience, dateRange, humanDuration } from "../../data/work";
+---
+
+<div class="space-y-7">
+  {
+    experience.map((group, gi) => (
+      <section class="reveal" style={`--enter-index:${gi}`}>
+        {/* Org header */}
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <h3 class="text-body font-medium text-ink">
+            {group.org}
+          </h3>
+          <p class="flex items-center gap-1.5 text-body text-ink-3">
+            <span>{group.location}</span>
+            {/* "Remote (Remote)" is the degenerate case: when the
+                location IS the work mode, the parenthetical adds
+                nothing and reads as a bug. */}
+            {group.location !== group.mode && (
+              <span class="text-ink-4">({group.mode})</span>
+            )}
+            {group.verified && (
+              <span
+                class="grid size-3.5 place-items-center rounded-full bg-note/20 text-note"
+                title="Verifiable: there is a person or a public artifact behind this"
+              >
+                <Icon name="ph:check" class="size-2.5" aria-hidden="true" />
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Roles, hung off a single rail */}
+        <div class="mt-2 space-y-0 border-l border-line-2 pl-0">
+          {group.roles.map((role, ri) => (
+            <details class="t-acc group/acc" open={gi === 0 && ri === 0}>
+              <summary
+                class="row-interactive -ml-px flex cursor-pointer items-start gap-3 border-l border-transparent py-2.5 pr-1 pl-4 transition-colors duration-fast ease-out hover:border-ink-4"
+              >
+                <span
+                  class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md border border-line-2 bg-surface text-ink-3"
+                  aria-hidden="true"
+                >
+                  <Icon name={role.icon} class="size-3.5" />
+                </span>
+
+                <span class="min-w-0 flex-1">
+                  <span class="block text-body text-ink">
+                    {role.title}
+                  </span>
+                  {/* Mono meta line. Duration is computed from the
+                      dates, so it cannot go stale. */}
+                  <span class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-label text-ink-3">
+                    <span>{role.employment}</span>
+                    <span class="text-ink-4">|</span>
+                    <span class="numeric">
+                      {dateRange(role.start, role.end)}
+                    </span>
+                    <span class="text-ink-4">|</span>
+                    <span class="numeric">
+                      {humanDuration(role.start, role.end)}
+                    </span>
+                  </span>
+                </span>
+
+                <span
+                  class="t-acc-chevron mt-1.5 shrink-0 text-ink-4 transition-colors duration-fast ease-out group-hover/acc:text-ink-2"
+                  aria-hidden="true"
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  >
+                    <path d="M4 6.5L8 10.5L12 6.5" />
+                  </svg>
+                </span>
+              </summary>
+
+              <div class="t-acc-panel">
+                <div class="t-acc-panel-inner">
+                  <div class="pb-4 pl-[2.6rem]">
+                    <ul class="space-y-1.5">
+                      {role.bullets.map((b) => (
+                        <li class="bullet prose-measure">{b}</li>
+                      ))}
+                    </ul>
+                    <ul class="mt-3 flex flex-wrap gap-1.5">
+                      {role.chips.map((c) => (
+                        <li class="chip">
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+</div>
+

@@ -1,110 +1,294 @@
 ---
-import type { GetStaticPaths } from "astro";
-import { getCollection, render } from "astro:content";
+/**
+ * Case study, adapted from the reference detail page (Figma
+ * 1:21846).
+ *
+ * That page's structure is: breadcrumb with previous/next controls,
+ * title, one-line description, a large preview panel, a features
+ * list, then tabbed technical detail. Mapped onto a project write-up
+ * it becomes: breadcrumb, outcome, the artifact, the measurement,
+ * what it does, the trade-off, and the limits.
+ *
+ * The order is deliberate and it is the opposite of most case
+ * studies. The measurement comes before the narrative, because a
+ * reviewer with ninety seconds needs the number and its baseline,
+ * not the story of how the project began.
+ */
+import { Icon } from "astro-icon/components";
 import PageLayout from "../../layouts/PageLayout.astro";
-import MetricStrip from "../../components/portfolio/MetricStrip.astro";
-import DecisionList from "../../components/portfolio/DecisionList.astro";
-import EvalCard from "../../components/portfolio/EvalCard.astro";
-import Diagram from "../../components/portfolio/Diagram.astro";
-import Section from "../../components/portfolio/Section.astro";
-import Toast from "../../components/portfolio/Toast.astro";
+import Band from "../../components/ui/Band.astro";
+import { projects, dateRange, humanDuration, maturityMeta } from "../../data/work";
+import { machineProject } from "../../lib/machine";
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  const systems = await getCollection("systems", ({ data }) => !data.draft);
-  return systems.map((system) => ({
-    params: { slug: system.id },
-    props: { system },
+export function getStaticPaths() {
+  const sorted = [...projects].sort((a, b) => b.start.localeCompare(a.start));
+  return sorted.map((project, i) => ({
+    params: { slug: project.slug },
+    props: {
+      project,
+      /* Previous and next are computed here rather than in the
+         template so the page never has to know the sort order. */
+      prev: sorted[i - 1] ?? null,
+      next: sorted[i + 1] ?? null,
+      index: i + 1,
+      total: sorted.length,
+    },
   }));
+}
+
+const { project: p, prev, next, index, total } = Astro.props;
+const m = maturityMeta[p.maturity];
+
+const evidenceIcon: Record<string, string> = {
+  repo: "ph:git-branch",
+  demo: "ph:cursor-click",
+  notebook: "ph:notebook",
+  model: "ph:robot",
+  writeup: "ph:article",
 };
 
-const { system } = Astro.props;
-const { data } = system;
-const { Content } = await render(system);
-
-const nav = [
-  { id: "decisions", label: "Decisions" },
-  { id: "evaluation", label: "Eval" },
-];
+/* MACHINE view of this page, built from the same objects the
+   human view below renders. See lib/machine.ts. */
+const machineDoc = machineProject(p);
 ---
 
-<PageLayout title={`${data.title}, case study`} description={data.outcome} nav={nav}>
-  <a href="/portfolio" class="text-xs text-ink-4 transition-colors duration-fast ease-out hover:text-ink">
-    &larr; back
-  </a>
+<PageLayout machine={machineDoc}
+  section="work"
+  title={`${p.title}, Ashutosh Rana`}
+  description={p.outcome}
+>
+  <section class="band">
+    <div class="column">
+      {/* Breadcrumb and pager, as in the reference. */}
+      <div class="flex items-center justify-between gap-3">
+        <nav aria-label="Breadcrumb" class="flex min-w-0 items-center gap-1.5">
+          <a
+            href="/work"
+            class="label transition-colors duration-fast ease-out hover:text-ink"
+            >Systems</a
+          >
+          <span class="label text-ink-4" aria-hidden="true">/</span>
+          <span class="label truncate text-ink">{p.title}</span>
+        </nav>
 
-  <h1 class="enter mt-8 max-w-2xl text-2xl leading-tight font-medium tracking-tight text-ink sm:text-3xl">
-    {data.outcome}
-  </h1>
-  <p class="enter mt-3 text-[15px] text-ink-3" style="--enter-index:1">{data.title}</p>
-
-  {/* Live demo is the second element on the page: only ~23% of ML
-      practitioners have ever deployed, so it is the cheapest differentiator. */}
-  <div class="enter mt-6 flex flex-wrap gap-2" style="--enter-index:2">
-    {data.liveDemo && (
-      <a href={data.liveDemo} class="flex items-center gap-2 rounded-well bg-ink px-4 py-2 text-[13px] font-medium text-ground transition-opacity duration-fast ease-out hover:opacity-90">
-        <span class="h-1.5 w-1.5 rounded-full bg-ground"></span> Live demo
-      </a>
-    )}
-    {data.artifacts.map((a) => (
-      <a href={a.url} class="rounded-well px-4 py-2 text-[13px] ring-1 ring-line transition-colors duration-fast ease-out hover:bg-sunken hover:text-ink">
-        {a.label ?? a.kind}
-      </a>
-    ))}
-  </div>
-
-  {data.relevanceNote && (
-    <blockquote class="enter mt-8 border-l-2 border-line pl-4" style="--enter-index:3">
-      <p class="text-[11px] text-ink-4">Why this is relevant</p>
-      <p class="mt-1 text-[14px] leading-relaxed">{data.relevanceNote}</p>
-    </blockquote>
-  )}
-
-  <div class="spine mt-(--space-section)">
-    <Section id="measured" title="Measured">
-      <MetricStrip metrics={data.metrics} />
-    </Section>
-
-    {data.diagram && (
-      <Section id="architecture" title="Architecture" note="Legible without reading the prose below it.">
-        <Diagram diagram={data.diagram} />
-      </Section>
-    )}
-
-    {data.decisions.length > 0 && (
-      <Section id="decisions" title="Decisions" note="What was chosen, what it cost, and what it changed downstream.">
-        <DecisionList decisions={data.decisions} />
-      </Section>
-    )}
-
-    {data.evals.length > 0 && (
-      <Section id="evaluation" title="Evaluation">
-        <div class="space-y-3">
-          {data.evals.map((result) => <EvalCard result={result} />)}
+        <div class="flex shrink-0 items-center gap-1">
+          <span class="numeric mr-1 text-label text-ink-4">
+            {index} / {total}
+          </span>
+          {
+            prev ? (
+              <a
+                href={`/work/${prev.slug}`}
+                class="grid size-7 place-items-center rounded-md border border-line-2 text-ink-3 transition-colors duration-fast ease-out hover:border-ink-4 hover:text-ink"
+                aria-label={`Previous system, ${prev.title}`}
+              >
+                <Icon name="ph:arrow-left" class="size-3.5" aria-hidden="true" />
+              </a>
+            ) : (
+              <span
+                class="grid size-7 place-items-center rounded-md border border-line-2 text-ink-4 opacity-40"
+                aria-hidden="true"
+              >
+                <Icon name="ph:arrow-left" class="size-3.5" />
+              </span>
+            )
+          }
+          {
+            next ? (
+              <a
+                href={`/work/${next.slug}`}
+                class="grid size-7 place-items-center rounded-md border border-line-2 text-ink-3 transition-colors duration-fast ease-out hover:border-ink-4 hover:text-ink"
+                aria-label={`Next system, ${next.title}`}
+              >
+                <Icon name="ph:arrow-right" class="size-3.5" aria-hidden="true" />
+              </a>
+            ) : (
+              <span
+                class="grid size-7 place-items-center rounded-md border border-line-2 text-ink-4 opacity-40"
+                aria-hidden="true"
+              >
+                <Icon name="ph:arrow-right" class="size-3.5" />
+              </span>
+            )
+          }
         </div>
-      </Section>
-    )}
+      </div>
 
-    {data.limitations.length > 0 && (
-      <Section id="limitations" title="Limitations">
-        <ul class="reveal space-y-2 text-[13px]">
-          {data.limitations.map((l) => (
-            <li class="flex gap-2"><span class="text-caution">&bull;</span>{l}</li>
-          ))}
-        </ul>
-      </Section>
-    )}
+      {/* Title block */}
+      <div class="mt-6 flex items-start gap-3">
+        <span
+          class="mt-1 grid size-10 shrink-0 place-items-center rounded-lg border border-line-2 bg-surface text-ink-2"
+          aria-hidden="true"
+        >
+          <Icon name={p.icon} class="size-5" />
+        </span>
+        <div class="min-w-0">
+          <h1
+            class="text-title font-medium text-ink"
+          >
+            {p.title}
+          </h1>
+          <p
+            class="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-label text-ink-3"
+          >
+            <span
+              class:list={[
+                "rounded-full px-1.5 py-px text-label  uppercase",
+                m.tone === "live" && "bg-live/15 text-live",
+                m.tone === "caution" && "bg-caution/15 text-caution",
+                m.tone === "muted" && "bg-ink/10 text-ink-3",
+              ]}>{m.label}</span
+            >
+            <span class="numeric">{dateRange(p.start, p.end)}</span>
+            <span class="text-ink-4">|</span>
+            <span class="numeric">{humanDuration(p.start, p.end)}</span>
+          </p>
+        </div>
+      </div>
 
-    <div class="reveal prose-sm max-w-none text-[14px] leading-relaxed">
-      <Content />
+      <p class="prose-measure mt-5 text-body text-ink-2">
+        {p.outcome}
+      </p>
+
+      {/* Evidence row, high on the page: the fastest way to check a
+          claim is to open the thing. */}
+      <div class="mt-5 flex flex-wrap items-center gap-2">
+        {
+          p.evidence.length > 0 ? (
+            p.evidence.map((e, i) => (
+              <a
+                href={e.url}
+                rel="noopener"
+                target="_blank"
+                class:list={["pill", i === 0 && "pill-solid"]}
+              >
+                <Icon name={evidenceIcon[e.kind]} class="size-4" aria-hidden="true" />
+                {e.label}
+              </a>
+            ))
+          ) : (
+            <p
+              class="flex items-center gap-2 rounded-lg border border-caution/30 bg-caution/5 px-3 py-2 text-body text-caution"
+            >
+              <Icon name="ph:warning" class="size-4 shrink-0" aria-hidden="true" />
+              Nothing public to open yet. It is 200 lines in a private repo, and
+              saying so is better than a dead link.
+            </p>
+          )
+        }
+      </div>
     </div>
+  </section>
 
-    {data.talkingPoint && (
-      <aside class="reveal well">
-        <p class="text-[11px] text-measured">Ask me about</p>
-        <p class="mt-1.5 text-[14px] leading-relaxed">{data.talkingPoint}</p>
-      </aside>
-    )}
-  </div>
+  {/* The artifact, full column. */}
+  <Band>
+    <figure>
+      <img
+        src={p.poster}
+        alt={`${p.title}: ${p.metric.label} of ${p.metric.value}, measured on ${p.metric.context}`}
+        width="1200"
+        height="750"
+        class="w-full rounded-xl border border-line-2 bg-surface"
+      />
+      <figcaption class="mt-2.5 text-body text-ink-3">
+        <span class="label">Fig. 1.</span>
+        {" "}Output from the system itself, not a mockup of it.
+      </figcaption>
+    </figure>
+  </Band>
 
-  <Toast />
+  <Band title="The measurement">
+    <div class="rounded-xl border border-line-2 bg-surface p-4">
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span class="numeric text-display text-ink"
+          >{p.metric.value}</span
+        >
+        <span class="label">{p.metric.label}</span>
+      </div>
+
+      <dl class="mt-4 space-y-2.5">
+        <div>
+          <dt class="label label-quiet text-label">Measured on</dt>
+          <dd class="mt-0.5 text-body text-ink-2">
+            {p.metric.context}
+          </dd>
+        </div>
+        <div>
+          <dt class="label label-quiet text-label">Against a baseline of</dt>
+          <dd class="mt-0.5 text-body text-ink-2">
+            {
+              p.metric.baseline ?? (
+                <span class="text-caution">
+                  No baseline recorded. The number above is therefore
+                  uninterpretable, and that is a gap, not a style choice.
+                </span>
+              )
+            }
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </Band>
+
+  <Band title="What it does">
+    <ul class="space-y-2.5">
+      {p.bullets.map((b) => <li class="bullet prose-measure">{b}</li>)}
+    </ul>
+  </Band>
+
+  <Band title="Stack">
+    <ul class="flex flex-wrap gap-1.5">
+      {p.chips.map((c) => <li class="chip"><span>{c}</span></li>)}
+    </ul>
+  </Band>
+
+  {/* Pager at the foot, so a reviewer reading straight through
+      never has to scroll back up to continue. */}
+  <Band>
+    <div class="grid gap-2 sm:grid-cols-2">
+      {
+        prev ? (
+          <a
+            href={`/work/${prev.slug}`}
+            class="group flex min-w-0 items-center gap-3 rounded-xl border border-line-2 p-3.5 transition-colors duration-fast ease-out hover:border-ink-4"
+          >
+            <Icon
+              name="ph:arrow-left"
+              class="size-4 shrink-0 text-ink-4 transition-transform duration-fast ease-out group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
+            <span class="min-w-0">
+              <span class="label label-quiet block text-label">Previous</span>
+              <span class="mt-0.5 block truncate text-body text-ink">
+                {prev.title}
+              </span>
+            </span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        next && (
+          <a
+            href={`/work/${next.slug}`}
+            class="group flex min-w-0 items-center justify-end gap-3 rounded-xl border border-line-2 p-3.5 text-right transition-colors duration-fast ease-out hover:border-ink-4 sm:col-start-2"
+          >
+            <span class="min-w-0">
+              <span class="label label-quiet block text-label">Next</span>
+              <span class="mt-0.5 block truncate text-body text-ink">
+                {next.title}
+              </span>
+            </span>
+            <Icon
+              name="ph:arrow-right"
+              class="size-4 shrink-0 text-ink-4 transition-transform duration-fast ease-out group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </a>
+        )
+      }
+    </div>
+  </Band>
 </PageLayout>
+
