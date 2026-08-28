@@ -116,6 +116,44 @@ readable with:
 npx wrangler d1 execute holdout-contact --command "SELECT * FROM submissions"
 ```
 
+## What `vercel.json` is doing
+
+JSON has no comments and Vercel's schema rejects unknown keys, so the
+reasoning lives here instead.
+
+**Security headers**, applied to every route. None need a build step or
+cost a request; they are off by default only because nobody sets them.
+
+| Header | Why |
+|---|---|
+| `X-Content-Type-Options: nosniff` | Stops the browser guessing a file is a different type than declared, the vector behind most "uploaded a .txt that executed as JS" bugs |
+| `Referrer-Policy: strict-origin-when-cross-origin` | Full referrer within the site, origin only cross-site, nothing when downgrading to http |
+| `Permissions-Policy` | This site asks for no camera, microphone or location, so it declines them up front |
+| `X-Frame-Options: DENY` | No reason for this site to be framed |
+| `Strict-Transport-Security` | Two years, subdomains included. Safe because the site is https-only |
+
+**Cache policy**, which is three different answers because the assets
+have three different lifetimes:
+
+- `/_astro/*` is fingerprinted by Astro, so those URLs can never go
+  stale: one year, `immutable`.
+- `/mock/*` is generated but not fingerprinted, so it revalidates
+  rather than being immutable: a day in the browser, a week at the edge.
+- The agent routes and the PDF change whenever content does: always
+  revalidate, but serve instantly from the edge while doing it via
+  `stale-while-revalidate`.
+
+## Analytics
+
+Vercel Analytics and Speed Insights, in `src/components/ui/Analytics.astro`.
+No cookies, so no consent banner, and Speed Insights reports Core Web
+Vitals from real visitors rather than a lab score. Dev is excluded via a
+build-time constant, so local page loads never reach the beacon.
+
+Both are Vercel-specific: the beacon posts to `/_vercel/insights`, so on
+any other host they load and quietly do nothing. Deploying to Cloudflare
+instead means swapping them for the Cloudflare Web Analytics snippet.
+
 ## Layouts studied
 
 The structure owes a real debt to five portfolios I studied while building
