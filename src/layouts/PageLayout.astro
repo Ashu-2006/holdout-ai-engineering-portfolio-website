@@ -17,13 +17,14 @@
  * so the toggle costs no request and cannot half-load.
  */
 import "../styles/global.css";
-import { site } from "../config/site";
+import { site, profiles } from "../config/site";
 import TopBar from "../components/ui/TopBar.astro";
 import Dock from "../components/ui/Dock.astro";
 import SiteFooter from "../components/ui/SiteFooter.astro";
 import Palette from "../components/ui/Palette.astro";
 import MachineView from "../components/ui/MachineView.astro";
 import Loader from "../components/ui/Loader.astro";
+import Analytics from "../components/ui/Analytics.astro";
 
 interface Props {
   title?: string;
@@ -44,7 +45,41 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site ?? site.url).href;
-const ogImage = new URL("/mock/og.svg", Astro.site ?? site.url).href;
+
+/*
+ * PNG, not SVG. X, LinkedIn, Slack, WhatsApp, Facebook and iMessage
+ * all refuse an SVG og:image, so the previous /mock/og.svg meant every
+ * share of this site rendered with no image at all. Absolute URL is
+ * also mandatory: relative og:image is ignored by most crawlers.
+ */
+const ogImage = new URL("/og.png", Astro.site ?? site.url).href;
+
+/*
+ * JSON-LD Person. Worth the bytes on a portfolio specifically: it is
+ * how a search engine (and increasingly an agent) learns that the name,
+ * the job title and the profile links belong to one entity rather than
+ * being loose strings on a page. sameAs is the part that does the
+ * linking, so it is built from the same profiles array the pages render.
+ */
+const personSchema = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: site.name,
+  jobTitle: site.role,
+  description: `${site.role}. I build ${site.builds}.`,
+  url: (Astro.site ?? new URL(site.url)).href,
+  image: new URL("/avatar.jpg", Astro.site ?? site.url).href,
+  email: `mailto:${site.email}`,
+  address: { "@type": "PostalAddress", addressCountry: "IN" },
+  sameAs: profiles.map((p) => p.url),
+  knowsAbout: [
+    "Machine learning",
+    "Model evaluation",
+    "Retrieval",
+    "Quantization",
+    "Signal processing",
+  ],
+};
 ---
 
 <!doctype html>
@@ -52,18 +87,56 @@ const ogImage = new URL("/mock/og.svg", Astro.site ?? site.url).href;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+
+    {/* Icons. The SVG is for browsers that take one; the 32px PNG and
+        the .ico cover the rest, and apple-touch-icon is what iOS uses
+        when a visitor adds the site to their home screen. */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    {/* Mobile browser chrome follows the page, in both schemes. */}
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#fcfcfb"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#0b0b0c"
+    />
 
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="en_GB" />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content={`${site.name}, ${site.role}. ${site.tagline}`}
+    />
+
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     <meta name="generator" content={Astro.generator} />
+
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(personSchema)}
+    />
 
     {/*
       Geist and Geist Mono. The reference file declares its own
@@ -160,5 +233,7 @@ const ogImage = new URL("/mock/og.svg", Astro.site ?? site.url).href;
       import { initSite } from "../scripts/site";
       initSite();
     </script>
+
+    <Analytics />
   </body>
 </html>

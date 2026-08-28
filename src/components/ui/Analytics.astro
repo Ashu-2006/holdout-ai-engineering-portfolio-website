@@ -1,0 +1,47 @@
+---
+/**
+ * Analytics and performance telemetry.
+ *
+ * STACK CHOICE, stated: Vercel Analytics + Speed Insights. The
+ * alternatives were Cloudflare Web Analytics (free, but this site now
+ * deploys to Vercel), Plausible or Fathom (nicer dashboards, ~$9/mo),
+ * or self-hosted Umami (free, but a database and a service to keep
+ * alive for a portfolio's traffic).
+ *
+ * Picked Vercel's because the hosting already pays for it, it needs no
+ * cookies and therefore no consent banner, and Speed Insights reports
+ * real Core Web Vitals from real visitors rather than a lab score.
+ *
+ * What it costs: ~1KB gzipped, and it is Vercel-specific. The beacon
+ * posts to /_vercel/insights, so on any other host these load and
+ * quietly do nothing. Moving back to Cloudflare means swapping both
+ * for the Cloudflare Web Analytics snippet.
+ */
+---
+
+{/*
+  The guard is INSIDE the script, not around it: Astro only bundles a
+  top-level <script>, so wrapping this in a template conditional would
+  stop it being processed at all.
+
+  import.meta.env.PROD is a build-time constant, so in dev the whole
+  branch is dead code and Vite drops it along with the dynamic imports.
+  Local page loads never reach the beacon, which matters because the
+  point of measuring is that the measurement is trustworthy.
+*/}
+<script>
+  if (import.meta.env.PROD) {
+    Promise.all([
+      import("@vercel/analytics"),
+      import("@vercel/speed-insights"),
+    ])
+      .then(([analytics, speed]) => {
+        analytics.inject();
+        speed.injectSpeedInsights();
+      })
+      .catch(() => {
+        /* Blocked by a content blocker, or not on Vercel. Neither is
+           a problem the visitor should ever see. */
+      });
+  }
+</script>

@@ -21,30 +21,16 @@ import { site } from "../../config/site";
 
   <div class="column">
     <div class="t-stagger">
-      {/*
-        Two overlapping squircles, as in the reference: the real
-        portrait with the monogram mark tucked behind it.
-      */}
       <div class="t-stagger-line t-stagger-line--1 flex items-center">
-        <span class="avatar-stack">
-          <img
-            src="/avatar.jpg"
-            alt={`${site.name}`}
-            width="112"
-            height="112"
-            class="avatar avatar-photo object-cover"
-            fetchpriority="high"
-            decoding="async"
-          />
-          <img
-            src="/mock/avatar.svg"
-            alt=""
-            width="112"
-            height="112"
-            class="avatar avatar-mark"
-            decoding="async"
-          />
-        </span>
+        <img
+          src="/avatar.jpg"
+          alt={site.name}
+          width="112"
+          height="112"
+          class="avatar object-cover"
+          fetchpriority="high"
+          decoding="async"
+        />
       </div>
 
       <h1
@@ -120,11 +106,10 @@ import { site } from "../../config/site";
     }
   }
 
-  /* ---- avatar ------------------------------------------------ */
-  .avatar-stack {
-    display: inline-flex;
-    align-items: center;
-  }
+  /* ---- avatar ------------------------------------------------
+     One portrait, no monogram behind it. The paired-squircle idea
+     came from the reference, but with a real photograph the second
+     mark only competed with the face. */
   .avatar {
     width: 3.5rem;
     height: 3.5rem;
@@ -132,25 +117,6 @@ import { site } from "../../config/site";
     display: block;
     background-color: var(--color-raised);
   }
-  /* The mark tucks behind the portrait and peeks out, which is what
-     makes the pair read as one object rather than two icons. */
-  .avatar-mark {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.75rem;
-    margin-left: -0.875rem;
-    /* A ring, not a shadow: the ground-coloured outline is what lets
-       the mark read as tucked behind the portrait. */
-    outline: 3px solid var(--color-ground);
-    position: relative;
-    z-index: -1;
-    transition: transform var(--motion-disclose);
-  }
-  .avatar-stack:hover .avatar-mark {
-    transform: translateX(4px) rotate(6deg);
-  }
-
-  
 
   /* ---- pronunciation ----------------------------------------- */
   .phon-text {

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "headers": [
+    {
+      "comment": "Baseline security headers. None of these need a build step or cost a request; leaving them off is the default only because nobody set them.",
+      "source": "/(.*)",
+      "headers": [
+        {
+          "comment": "Stops a browser guessing a served file is a different type than declared, which is the vector behind most 'uploaded a .txt that ran as JS' bugs.",
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "comment": "Send the full referrer within the site, origin-only cross-site, nothing when downgrading to http.",
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "comment": "This site asks for no device permissions, so it declines them all up front.",
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "comment": "No reason for this site to be framed by anyone.",
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "comment": "Two years, subdomains included. Safe here because the site is https-only.",
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        }
+      ]
+    },
+    {
+      "comment": "Astro fingerprints everything in _astro/, so those URLs can never go stale. Cache them for a year and immutably.",
+      "source": "/_astro/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "comment": "Generated imagery is not fingerprinted, so it gets a day of browser cache and a week at the edge with revalidation rather than immutability.",
+      "source": "/mock/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "comment": "The agent-readable routes and the PDF change with the content, so revalidate but serve instantly from the edge while doing it.",
+      "source": "/(llms.txt|llms-full.txt|robots.txt|sitemap.xml|resume.pdf)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
+        }
+      ]
+    }
+  ]
+}
