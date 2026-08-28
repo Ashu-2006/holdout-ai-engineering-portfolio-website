@@ -15,13 +15,33 @@ is decoration.
 
 ## Run it
 
+You need [pnpm](https://pnpm.io). This repo pins it via `packageManager` in
+`package.json`, so pick whichever install you prefer:
+
+```bash
+corepack enable pnpm          # uses the pinned version; needs an admin shell on Windows
+npm i -g pnpm@10.22.0         # user-scoped, no admin
+```
+
+Then:
+
 ```bash
 pnpm install
-pnpm dev            # http://localhost:4321
+pnpm dev            # http://127.0.0.1:4321
 ```
 
 That is the whole setup. No env vars, no database, no accounts needed to see
 the site.
+
+**`pnpm dev` returns to your prompt immediately.** Astro 7 runs the dev server
+as a background daemon, so there is no live log scrolling in your terminal and
+an instant prompt does not mean it failed to start:
+
+```bash
+pnpm exec astro dev status    # is it up, and on what pid
+pnpm exec astro dev logs      # the output you would have seen inline
+pnpm exec astro dev stop      # shut it down
+```
 
 To run the contact backend too (Cloudflare Worker + local D1 on disk):
 
