@@ -22,6 +22,8 @@ import FannedStrip from "../components/blocks/FannedStrip.astro";
 import PostRows from "../components/blocks/PostRows.astro";
 import { projects } from "../data/work";
 import { machineHome } from "../lib/machine";
+import { fieldNotes } from "../lib/notes";
+import { fileURLToPath } from "node:url";
 
 /* Featured first, then by recency. The home page shows three: a
    short list a reviewer will actually read beats a complete one
@@ -35,12 +37,10 @@ const posts = (await getCollection("posts"))
   .filter((p) => p.data.status === "live")
   .slice(0, 3);
 
-const notes = [
-  { src: "/mock/note-lab.svg", alt: "The spindle test rig on its first instrumented run" },
-  { src: "/mock/note-board.svg", alt: "An Arduino board mid-repair on a desk" },
-  { src: "/mock/note-plot.svg", alt: "A training curve on a laptop screen, finally converging" },
-  { src: "/mock/note-campus.svg", alt: "The walk back from the lab at dusk" },
-];
+/* Read from public/notes/ at build time, so adding a photograph is
+   dropping a file in rather than editing this array. Falls back to the
+   generated placeholders while that folder is empty. See lib/notes.ts. */
+const notes = fieldNotes(fileURLToPath(new URL("../..", import.meta.url)));
 
 /* MACHINE view of this page, built from the same objects the
    human view below renders. See lib/machine.ts. */

@@ -28,25 +28,56 @@
     Consolas, monospace;
 
   /* ============================================================
-     THE TYPE SCALE. Four sizes, and content only ever uses one.
+     THE TYPE SCALE.
 
-     Every piece of content on this site is set at --text-body.
-     Not "mostly": all of it. Prose, row titles, values, bullets,
-     captions, list items, table cells.
+     ONE BASE, ONE RATIO, FIVE STEPS.
+       base  16px
+       ratio 1.25 (major third)
+       steps 16 / 20 / 25 / 31 / 39 / 49 / 61
 
-     The previous scale had nine sizes between 10px and 46px, and
-     the effect was that nothing was emphasised because everything
-     was slightly different. Hierarchy here comes from weight,
-     colour and position instead, which are free, rather than from
-     size, which costs a scale step every time it is used.
+     The old scale was four fixed sizes with body at 16 and the h1
+     at 28. A 1.75x ratio between the largest and smallest thing on
+     a page is not a hierarchy: measured on the home page, 246 of
+     the 257 text elements rendered at either 16px or 12px, and the
+     single biggest piece of type on the whole site was a decorative
+     150px wordmark in the FOOTER. The page had nowhere for the eye
+     to land, which is what "monotonous" actually means.
 
-     The three exceptions are structural, not content:
-       --text-label   mono uppercase micro-label (section eyebrows,
-                      dates, chips, spec keys). Never a sentence.
-       --text-title   section headings.
-       --text-display h1 only, one per page.
+     Five steps, not nine. The previous nine-size scale failed the
+     opposite way: everything was slightly different, so nothing was
+     emphasised. Five is what Linear ships for a far denser product,
+     and it gets the rest of its hierarchy from weight and tone,
+     which cost nothing.
+
+     STEP-SKIPPING IS THE RULE. Two neighbouring elements are never
+     adjacent on the scale, because adjacent steps read as an
+     accident rather than as a decision:
+       display 61 -> lead 31   three steps
+       lead    31 -> body 16   three steps
+       title   28 -> body 16   two and a half
+     Any one screen uses about three of the five. The scale is a
+     source of sizes, not a thing to display.
+
+     FLUID, WITH REM ENDPOINTS. Every step interpolates between a
+     320px and a 1440px viewport, so there are no typography
+     breakpoints. The min and max are in rem and only the middle
+     term carries vw: a px min/max ignores the reader's browser
+     font-size setting entirely, which is the single most common bug
+     in fluid type.
+
+     Leading tightens as size grows, tracking goes negative as size
+     grows. Both are paired to the step so they cannot drift.
+
+       --text-label   12px mono uppercase. Eyebrows, dates, chips,
+                      spec keys. Never a sentence.
+       --text-body    16px. Nearly all content, ~246 uses per page.
+       --text-title   24-28px. Section headings.
+       --text-lead    22-31px. The one-statement blocks: the about
+                      line, a pulled claim. Two or three lines, never
+                      a paragraph.
+       --text-display 40-61px. h1 only, one per page.
      ============================================================ */
-  --text-body: 1rem; /* 16px, the only content size */
+  --text-body: 1rem; /* 16px, nearly all content */
   --text-body--line-height: 1.5rem;
   --text-body--letter-spacing: 0.01em;
 
@@ -54,13 +85,20 @@
   --text-label--line-height: 1rem;
   --text-label--letter-spacing: 0.04em;
 
-  --text-title: 1.375rem; /* 22px section heading */
-  --text-title--line-height: 1.75rem;
-  --text-title--letter-spacing: -0.015em;
+  /* 24px at 320 -> 28px at 1440 */
+  --text-title: clamp(1.5rem, 1.4286rem + 0.3571vw, 1.75rem);
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
 
-  --text-display: 1.75rem; /* 28px, h1 only */
-  --text-display--line-height: 2rem;
-  --text-display--letter-spacing: -0.025em;
+  /* 22px at 320 -> 31px at 1440 */
+  --text-lead: clamp(1.375rem, 1.2143rem + 0.8036vw, 1.9375rem);
+  --text-lead--line-height: 1.3;
+  --text-lead--letter-spacing: -0.021em;
+
+  /* 40px at 320 -> 61px at 1440 */
+  --text-display: clamp(2.5rem, 2.125rem + 1.875vw, 3.8125rem);
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.035em;
 
   /* ---- ground and surface --------------------------------
      Light is the base. Four steps, no more: elevation is a
@@ -402,6 +440,34 @@ body {
     letter-spacing: var(--text-title--letter-spacing);
     font-weight: 500;
     color: var(--color-ink);
+    /* Headings are the one place a bad break is visible, because
+       there are only two or three words to break. */
+    text-wrap: balance;
+  }
+
+  /* ----------------------------------------------------------
+     The lead. A single statement at two or three lines, never a
+     paragraph: past three lines this size stops being a focal
+     point and becomes a wall.
+
+     `max-width` is in ch and deliberately tight. At 31px a 68ch
+     measure would run to five lines in the 768px column, so the
+     lead carries its own, shorter measure rather than borrowing
+     the prose one.
+     ---------------------------------------------------------- */
+  .lead {
+    font-size: var(--text-lead);
+    line-height: var(--text-lead--line-height);
+    letter-spacing: var(--text-lead--letter-spacing);
+    font-weight: 400;
+    color: var(--color-ink);
+    max-width: 24ch;
+    text-wrap: pretty;
+  }
+  @media (min-width: 40rem) {
+    .lead {
+      max-width: 30ch;
+    }
   }
   /* The count that follows a title: "(12)". Information, so it
      is mono; subordinate, so it is raised and quiet rather than
@@ -498,6 +564,155 @@ body {
     .row-interactive:hover {
       background-color: var(--color-sunken);
     }
+  }
+
+  /* ----------------------------------------------------------
+     INVERTED SURFACE.
+
+     A block that reverses against the page: dark in the light theme,
+     light in the dark theme. Used for the compose card and the
+     footer, where a single reversed panel is the strongest emphasis
+     available in a design with no shadows and no accent colour.
+
+     IT SWAPS TOKENS, NOT COLOURS. The whole ink/ground/surface/line
+     set is redeclared on the block, so every descendant re-resolves
+     against it with no per-element overrides: .label, .field-key,
+     .chip, .bullet and .pill-solid all invert for free, and any
+     component dropped in here later inverts too. Overriding colours
+     element by element would have needed a rule per child and would
+     silently miss the next one added.
+
+     The values ARE the opposite theme's palette, literally. That is
+     what makes the contrast guarantees carry over: these exact pairs
+     were measured at 4.5:1 or better in the audit, so a reversed
+     panel cannot quietly become the one place that fails AA.
+
+     Declared explicitly per theme rather than derived. `--color-ink:
+     var(--color-ground)` alongside `--color-ground: var(--color-ink)`
+     is a custom-property cycle, which resolves to invalid and paints
+     nothing. Two explicit blocks are the boring, working version.
+     ---------------------------------------------------------- */
+  .invert-surface {
+    --color-ground: #131316;
+    --color-surface: #1c1c20;
+    --color-raised: #26262b;
+    --color-sunken: #17171a;
+    --color-ink: #e9e9e7;
+    --color-ink-2: #a3a3a0;
+    --color-ink-3: #84847f;
+    --color-ink-4: #6b6b66;
+    --color-line: rgb(255 255 255 / 0.15);
+    --color-line-2: rgb(255 255 255 / 0.085);
+    --color-live: #4ade80;
+    --color-caution: #fbbf24;
+    --color-halt: #f87171;
+    --color-note: #60a5fa;
+
+    background-color: var(--color-ground);
+    color: var(--color-ink-2);
+  }
+
+  /*
+   * NESTED, IT FLIPS BACK.
+   *
+   * The rule is not "this block is dark", it is "this block reverses
+   * against whatever it sits on". The compose card carries it so it is
+   * the strongest thing in the contact surface; the footer carries it
+   * so the page ends on a change of ground. The card lives inside the
+   * footer, so without this rule the two cancel and the card becomes
+   * dark-on-dark, indistinguishable from the panel beside it.
+   *
+   * One level of nesting is all that is defined, because two reversals
+   * is already the deepest emphasis this design has. A third would be
+   * back where it started.
+   */
+  .invert-surface .invert-surface {
+    --color-ground: #f7f7f5;
+    --color-surface: #fbfbfa;
+    --color-raised: #eaeae6;
+    --color-sunken: #f2f2ef;
+    --color-ink: #1e1e1d;
+    --color-ink-2: #5a5a58;
+    --color-ink-3: #71716d;
+    --color-ink-4: #8c8c87;
+    --color-line: rgb(0 0 0 / 0.15);
+    --color-line-2: rgb(0 0 0 / 0.085);
+    --color-live: #106b32;
+    --color-caution: #8a5205;
+    --color-halt: #b3261e;
+    --color-note: #1d4ed8;
+  }
+
+  /* Both blocks again for a dark page, where every reversal points the
+     other way. Duplicated per scheme for the same reason the token
+     blocks above are: the media query honours the OS default and the
+     attribute lets the toggle win, and a custom property cannot be
+     defined in terms of the value it is replacing. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .invert-surface {
+    --color-ground: #f7f7f5;
+    --color-surface: #fbfbfa;
+    --color-raised: #eaeae6;
+    --color-sunken: #f2f2ef;
+    --color-ink: #1e1e1d;
+    --color-ink-2: #5a5a58;
+    --color-ink-3: #71716d;
+    --color-ink-4: #8c8c87;
+    --color-line: rgb(0 0 0 / 0.15);
+    --color-line-2: rgb(0 0 0 / 0.085);
+    --color-live: #106b32;
+    --color-caution: #8a5205;
+    --color-halt: #b3261e;
+    --color-note: #1d4ed8;
+    }
+    :root:not([data-theme="light"]) .invert-surface .invert-surface {
+    --color-ground: #131316;
+    --color-surface: #1c1c20;
+    --color-raised: #26262b;
+    --color-sunken: #17171a;
+    --color-ink: #e9e9e7;
+    --color-ink-2: #a3a3a0;
+    --color-ink-3: #84847f;
+    --color-ink-4: #6b6b66;
+    --color-line: rgb(255 255 255 / 0.15);
+    --color-line-2: rgb(255 255 255 / 0.085);
+    --color-live: #4ade80;
+    --color-caution: #fbbf24;
+    --color-halt: #f87171;
+    --color-note: #60a5fa;
+    }
+  }
+  [data-theme="dark"] .invert-surface {
+    --color-ground: #f7f7f5;
+    --color-surface: #fbfbfa;
+    --color-raised: #eaeae6;
+    --color-sunken: #f2f2ef;
+    --color-ink: #1e1e1d;
+    --color-ink-2: #5a5a58;
+    --color-ink-3: #71716d;
+    --color-ink-4: #8c8c87;
+    --color-line: rgb(0 0 0 / 0.15);
+    --color-line-2: rgb(0 0 0 / 0.085);
+    --color-live: #106b32;
+    --color-caution: #8a5205;
+    --color-halt: #b3261e;
+    --color-note: #1d4ed8;
+  }
+  [data-theme="dark"] .invert-surface .invert-surface {
+    --color-ground: #131316;
+    --color-surface: #1c1c20;
+    --color-raised: #26262b;
+    --color-sunken: #17171a;
+    --color-ink: #e9e9e7;
+    --color-ink-2: #a3a3a0;
+    --color-ink-3: #84847f;
+    --color-ink-4: #6b6b66;
+    --color-line: rgb(255 255 255 / 0.15);
+    --color-line-2: rgb(255 255 255 / 0.085);
+    --color-live: #4ade80;
+    --color-caution: #fbbf24;
+    --color-halt: #f87171;
+    --color-note: #60a5fa;
   }
 
   /* The one permitted surface change: content that is genuinely

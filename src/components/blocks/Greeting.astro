@@ -26,38 +26,39 @@ const initial =
   hour < 5 ? "Still up?" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 ---
 
+{/*
+  FOUR BULLETS BECAME ONE STATEMENT.
+
+  The four paragraphs that used to live here said, in order: the two
+  degrees, why the combination matters, that measurement is the point,
+  and what he is doing now. All true, all at 16px, all weighted the
+  same, so a reader skimming took none of it.
+
+  The one idea worth stopping for is the second: the machine learning
+  is attached to something that keeps running whether or not the model
+  is right. That is now the whole block, at --text-lead, at two lines
+  on mobile and three on desktop. The rest of the facts are not
+  deleted, they are demoted: the degrees are already in the identity
+  grid above, and the current work now sits on one supporting line.
+
+  This is the hierarchy fix in one block. The lead is three scale
+  steps above the line under it, so the eye lands on the claim first
+  and reaches the detail second, which is the order they matter in.
+*/}
 <div>
-  <p
-    class="text-title font-medium text-ink" data-greeting
-  >
-    {initial}
+  <p class="label" data-greeting>{initial}</p>
+
+  <p class="lead mt-3">
+    Most of my machine learning ends up on a machine that keeps running
+    whether or not the model is right.
   </p>
 
-  <ul class="mt-4 space-y-3">
-    <li class="bullet prose-measure">
-      I am <strong class="font-medium text-ink">{site.name}</strong>, an AI
-      engineer in {site.location}, reading two degrees at once:{" "}
-      <span class="text-ink">Computer Science</span> at Example Institute of
-      Technology and <span class="text-ink">Data Science and AI</span> at
-      Example University.
-    </li>
-    <li class="bullet prose-measure">
-      The combination is the point. Most of my machine learning ends up attached
-      to a sensor, a machine, or a process that will keep running whether or not
-      the model is right, which is a different discipline from getting a good
-      number in a notebook.
-    </li>
-    <li class="bullet prose-measure">
-      What I actually care about is measurement. Every project on this site
-      states its baseline, its evaluation set, and the conditions under which it
-      fails. A metric without those three is a decoration.
-    </li>
-    <li class="bullet prose-measure">
-      Currently: bearing-fault detection on live CNC spindles at the{" "}
-      <span class="text-ink">Smart Manufacturing Lab</span>, and looking for an
-      AI/ML internship for summer 2027.
-    </li>
-  </ul>
+  <p class="prose-measure mt-5 text-body text-ink-2">
+    Which is why every project here states its baseline, its evaluation set,
+    and the conditions under which it fails. A metric without those three is
+    a decoration. Currently: bearing-fault detection on live CNC spindles at
+    the <span class="text-ink">Smart Manufacturing Lab</span>.
+  </p>
 </div>
 
 <style>

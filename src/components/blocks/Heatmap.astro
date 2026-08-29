@@ -44,7 +44,23 @@ const r = rng(20260827);
 const sprint = (w: number) => (w > 8 && w < 17) || (w > 30 && w < 41);
 const exams = (w: number) => (w > 20 && w < 25) || (w > 44 && w < 48);
 
-const cells: { level: number; week: number; day: number }[] = [];
+/*
+ * The grid's start date, parsed out of `range` rather than authored
+ * twice, so a cell's tooltip can never disagree with the caption
+ * under it.
+ */
+const [d0, m0, y0] = range.split(" ")[0].split(".").map(Number);
+const START = Date.UTC(y0, m0 - 1, d0);
+const DAY_MS = 86_400_000;
+const fmtDay = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+const cells: { level: number; week: number; day: number; count: number; when: string }[] = [];
 for (let w = 0; w < WEEKS; w++) {
   for (let d = 0; d < 7; d++) {
     let p = 0.42;
@@ -53,10 +69,33 @@ for (let w = 0; w < WEEKS; w++) {
     if (d === 0) p *= 0.28; // Sundays
     const hit = r() < p;
     const level = !hit ? 0 : 1 + Math.floor(r() * (sprint(w) ? 4 : 3));
-    cells.push({ level: Math.min(4, level), week: w, day: d });
+    const lv = Math.min(4, level);
+    /* A count that is consistent with the level it renders, so the
+       tooltip and the shade tell the same story. Derived, not a
+       second random draw. */
+    const count = lv === 0 ? 0 : [0, 1, 3, 6, 11][lv] + Math.floor(r() * 3);
+    cells.push({
+      level: lv,
+      week: w,
+      day: d,
+      count,
+      when: fmtDay.format(new Date(START + (w * 7 + d) * DAY_MS)),
+    });
   }
 }
-const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
+
+/*
+ * Five discrete level classes, not opacity utilities.
+ *
+ * The previous version painted every cell --color-ink and stepped it
+ * with opacity-25/45/70/100. That made the shade and the element's
+ * alpha the same property, which is why the reveal animation needed
+ * four extra keyframe overrides to stop the utilities fighting its
+ * end state. Explicit background colours per level free `opacity`
+ * for the animation and free `transform` for the hover, and delete
+ * those overrides outright.
+ */
+const levels = ["heat-l0", "heat-l1", "heat-l2", "heat-l3", "heat-l4"];
 ---
 
 <figure class="reveal">
@@ -75,11 +114,9 @@ const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
       {
         cells.map((c) => (
           <span
-            class:list={[
-              "heat-cell size-[11px] rounded-[2px]",
-              c.level === 0 ? "heat-empty" : ["heat-on", levels[c.level]],
-            ]}
+            class:list={["heat-cell size-[11px] rounded-[2px]", levels[c.level]]}
             style={`--w:${c.week}`}
+            title={`${c.count === 0 ? "No contributions" : c.count === 1 ? "1 contribution" : c.count + " contributions"} on ${c.when}`}
           />
         ))
       }
@@ -101,12 +138,7 @@ const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
       Less
       {
         [0, 1, 2, 3, 4].map((l) => (
-          <span
-            class:list={[
-              "size-[10px] rounded-[2px]",
-              l === 0 ? "heat-empty" : ["heat-on", levels[l]],
-            ]}
-          />
+          <span class:list={["size-[10px] rounded-[2px]", levels[l]]} />
         ))
       }
       More
@@ -115,40 +147,102 @@ const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
 </figure>
 
 <style>
-  .heat-empty {
-    background-color: color-mix(in oklab, var(--color-ink) 6%, transparent);
-  }
   /*
-   * Monochrome, like the reference's own heatmap, and not the
-   * conventional green.
+   * THE GREEN RAMP.
    *
-   * Two reasons. The design reserves chroma for state and for the
-   * artifact posters, and a 364-cell grid in signal green is by far
-   * the loudest object on the page, which puts the emphasis on
-   * "look how much I commit" rather than on the work. In ink it
-   * reads as what it is: a density plot.
+   * This grid used to be monochrome, on the argument that the design
+   * reserves chroma for state and for the artifact posters, and that
+   * 364 cells of signal green would be the loudest object on the page.
+   * That argument was right about the loudness and wrong about the
+   * conclusion: a page with no chroma anywhere does not read as
+   * disciplined, it reads as unfinished, and this figure is the one
+   * element large enough to carry colour without a second one to
+   * balance it.
+   *
+   * Mixed from --color-live rather than hardcoded, for three reasons:
+   * the ramp inherits the token's AA-corrected hue, one formula covers
+   * both themes because --color-ground flips with them, and a future
+   * palette change moves the grid with it instead of stranding a
+   * literal green here.
+   *
+   * Mixing toward --color-ground (opaque) rather than transparent so
+   * a cell never picks up whatever it happens to sit over.
    */
-  .heat-on {
-    background-color: var(--color-ink);
+  .heat-l0 {
+    background-color: color-mix(in oklab, var(--color-ink) 7%, var(--color-ground));
+  }
+  .heat-l1 {
+    background-color: color-mix(in oklab, var(--color-live) 26%, var(--color-ground));
+  }
+  .heat-l2 {
+    background-color: color-mix(in oklab, var(--color-live) 50%, var(--color-ground));
+  }
+  .heat-l3 {
+    background-color: color-mix(in oklab, var(--color-live) 74%, var(--color-ground));
+  }
+  .heat-l4 {
+    background-color: var(--color-live);
+  }
+
+  /* ----------------------------------------------------------
+     THE HOVER.
+
+     Two things happen, and the second is what makes it feel like an
+     instrument rather than a grid of divs:
+
+       1. The hovered cell lifts and grows, on transform only, so it
+          composites and never reflows its 364 neighbours.
+       2. Every OTHER cell fades back, via :has() on the grid. Isolating
+          one cell by dimming the rest reads far more clearly than
+          brightening the target, because the target is 11px and the
+          rest of the field is 680px wide.
+
+     Pointer-only. On touch there is no hover state to leave, so the
+     grid would latch dimmed after a tap.
+     ---------------------------------------------------------- */
+  .heat-cell {
+    opacity: 1;
+    transition:
+      transform var(--motion-hover),
+      filter var(--motion-hover);
+    will-change: transform;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .heat:has(.heat-cell:hover) .heat-cell {
+      filter: saturate(0.35) opacity(0.45);
+    }
+    .heat .heat-cell:hover {
+      filter: none;
+      transform: scale(1.65);
+      /* The outline rides the transform, so it stays a hairline at
+         any scale instead of thickening with the cell. */
+      outline: 1px solid var(--color-ink);
+      outline-offset: 1px;
+      border-radius: 3px;
+      position: relative;
+      z-index: 1;
+    }
   }
 
   /*
    * Column-by-column wipe on first reveal. The delay is driven off
-   * the week index, so the year fills left to right like a
-   * timeline rather than all at once. Capped at 52 columns times
-   * 8ms, which is 416ms: inside the reveal budget, so it never
-   * holds up reading.
+   * the week index, so the year fills left to right like a timeline
+   * rather than all at once. Capped at 52 columns times 8ms, which is
+   * 416ms: inside the reveal budget, so it never holds up reading.
+   *
+   * Visible by default, so no-JS and reduced-motion get a plain grid.
+   * The wipe only exists once the figure has been revealed: previously
+   * all 364 cells started animating on page load while still below the
+   * fold, putting 364 concurrent animations in competition with the
+   * loader and the hero for the first frames.
+   *
+   * The four heat-in-25/45/70 keyframe variants that used to live here
+   * are gone. They existed only because the level was painted with
+   * Tailwind opacity utilities, which fought this animation's end
+   * state. Levels are background colours now, so one keyframe covers
+   * every cell.
    */
-  /*
-   * Visible by default, so no-JS and reduced-motion get a plain
-   * grid. The wipe only exists once the figure has been revealed:
-   * previously all 364 cells started animating on page load while
-   * still below the fold, which put 364 concurrent animations in
-   * competition with the loader and the hero for the first frames.
-   */
-  .heat-cell {
-    opacity: 1;
-  }
   :global(.js) .reveal:not([data-seen="true"]) .heat-cell {
     opacity: 0;
   }
@@ -166,53 +260,14 @@ const levels = ["", "opacity-25", "opacity-45", "opacity-70", "opacity-100"];
       transform: none;
     }
   }
-  /* The utility opacity classes have to win over the keyframe's
-     end state, so they are re-applied here at the same specificity
-     the animation resolves at. */
-  :global(.js) .reveal[data-seen="true"] .heat-cell.opacity-25 {
-    animation-name: heat-in-25;
-  }
-  :global(.js) .reveal[data-seen="true"] .heat-cell.opacity-45 {
-    animation-name: heat-in-45;
-  }
-  :global(.js) .reveal[data-seen="true"] .heat-cell.opacity-70 {
-    animation-name: heat-in-70;
-  }
-  @keyframes heat-in-25 {
-    from {
-      opacity: 0;
-      transform: scale(0.4);
-    }
-    to {
-      opacity: 0.25;
-      transform: none;
-    }
-  }
-  @keyframes heat-in-45 {
-    from {
-      opacity: 0;
-      transform: scale(0.4);
-    }
-    to {
-      opacity: 0.45;
-      transform: none;
-    }
-  }
-  @keyframes heat-in-70 {
-    from {
-      opacity: 0;
-      transform: scale(0.4);
-    }
-    to {
-      opacity: 0.7;
-      transform: none;
-    }
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .heat-cell {
       animation: none;
       opacity: 1;
+    }
+    .heat .heat-cell:hover {
+      transform: none;
     }
   }
 </style>
