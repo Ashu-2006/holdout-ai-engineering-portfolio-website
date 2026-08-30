@@ -1,6 +1,6 @@
 /**
- * Derived reads over Project.metric, shared by the playground
- * variations.
+ * Derived reads over Project.metric, shared by the project cards and
+ * the playground variations.
  *
  * WHY THIS FILE EXISTS AND WHAT IT REFUSES TO DO:
  *
@@ -28,7 +28,7 @@
  * If a variation here gets promoted, add `higherIsBetter: boolean` to
  * Project.metric and this file can compute properly.
  */
-import type { Project } from "../../data/work";
+import type { Project } from "../data/work";
 
 /**
  * The leading figure of a baseline string, or null.

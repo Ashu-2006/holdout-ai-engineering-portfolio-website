@@ -16,7 +16,7 @@ import IdentityGrid from "../components/blocks/IdentityGrid.astro";
 import Heatmap from "../components/blocks/Heatmap.astro";
 import Greeting from "../components/blocks/Greeting.astro";
 import ExperienceList from "../components/blocks/ExperienceList.astro";
-import ProjectRows from "../components/blocks/ProjectRows.astro";
+import ProjectCards from "../components/blocks/ProjectCards.astro";
 import StackTable from "../components/blocks/StackTable.astro";
 import FannedStrip from "../components/blocks/FannedStrip.astro";
 import PostRows from "../components/blocks/PostRows.astro";
@@ -25,12 +25,13 @@ import { machineHome } from "../lib/machine";
 import { fieldNotes } from "../lib/notes";
 import { fileURLToPath } from "node:url";
 
-/* Featured first, then by recency. The home page shows three: a
-   short list a reviewer will actually read beats a complete one
-   they will scroll past. */
+/* Featured first, then by recency. Four, not three: the cards sit in a
+   two-column grid, so an odd count leaves the last one alone beside a
+   hole. Four fills two rows exactly, and a short list a reviewer will
+   actually read still beats a complete one they scroll past. */
 const featured = [...projects]
   .sort((a, b) => Number(b.featured) - Number(a.featured) || b.start.localeCompare(a.start))
-  .slice(0, 3);
+  .slice(0, 4);
 
 const posts = (await getCollection("posts"))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
@@ -78,10 +79,10 @@ const machineDoc = machineHome(
     id="work"
     title="Selected systems"
     count={projects.length}
-    note="Every entry states its baseline and the conditions under which it fails. Three of six shown."
+    note="Every entry states its baseline and the conditions under which it fails. Four of six shown."
     action={{ label: "All systems", href: "/work" }}
   >
-    <ProjectRows items={featured} openFirst posters />
+    <ProjectCards items={featured} />
     <a slot="footer" href="/work" class="pill">
       See all {projects.length} systems
       <svg viewBox="0 0 16 16" class="size-3.5" fill="none" stroke="currentColor" stroke-width="1.5">

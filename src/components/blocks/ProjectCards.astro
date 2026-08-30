@@ -1,0 +1,406 @@
+---
+/**
+ * Project cards. The artifact leads, the actions sit in a split footer.
+ *
+ * WHAT CHANGED AND WHY. This replaces the expandable rows on the home
+ * page and the work index. Those rows put the poster, the measurement,
+ * the baseline and the stack list behind a <details>, which meant the
+ * strongest asset on the site was invisible until someone decided to
+ * click, and comparing two systems cost two clicks and a scroll.
+ *
+ * The structure follows the reference: preview image, title with a
+ * date opposite it, the sentence, the stack, then a footer split into
+ * the two links that matter. What is ours rather than borrowed:
+ *
+ *  1. THE MEASUREMENT LINE. The reference card carries no number. This
+ *     site's entire argument is that a project without a baseline is a
+ *     decoration, so state, result and baseline ride one compact mono
+ *     line under the title. It is the field that makes the card
+ *     evidence rather than a screenshot with a caption.
+ *  2. DASHED HAIRLINES. The reference outlines its cards in a dashed
+ *     rule; here that lands on a page already drawn as a measured
+ *     sheet with full-bleed column rules and "Fig. N" captions, so a
+ *     dashed border reads as a cut line on a drawing rather than as a
+ *     decorative frame. Solid stays reserved for real edges.
+ *  3. NO SHADOW, NO LIFT. Depth is a surface change plus a hairline,
+ *     as everywhere else. The only motion is the poster scaling inside
+ *     its own frame, which reads as looking closer rather than as the
+ *     card leaving the page.
+ *
+ * CONCENTRIC RADII. Card radius 1rem, card padding 0.5rem, frame
+ * radius 0.5rem. Inner = outer minus padding, or the nested rectangle
+ * looks pinched at the corners.
+ */
+import { Icon } from "astro-icon/components";
+import { dotDate, maturityMeta, type Project } from "../../data/work";
+import { leadingFigure } from "../../lib/metric";
+
+interface Props {
+  items: Project[];
+}
+const { items } = Astro.props;
+
+const evidenceIcon: Record<string, string> = {
+  repo: "ph:github-logo",
+  demo: "ph:arrow-square-out",
+  notebook: "ph:notebook",
+  model: "ph:robot",
+  writeup: "ph:article",
+};
+
+/** The reference's own wording for the two kinds that have one. */
+const actionLabel = (kind: string, fallback: string) =>
+  kind === "demo" ? "Live link" : kind === "repo" ? "GitHub" : fallback;
+
+/**
+ * The footer offers at most two actions: the running thing first, the
+ * source second, then whatever else the project has.
+ *
+ * Capped at two because the footer splits the card width evenly, and a
+ * third column puts three 9-character labels in about 90px each, which
+ * wraps every one of them.
+ *
+ * THE FILL STEP MATTERS. Preferring demo and repo and stopping there
+ * looked right and lost evidence: Spindle Sentinel has a repo, a
+ * failure-mode writeup and a training notebook but no demo, so it
+ * rendered a single "GitHub" spanning the whole card while two real
+ * links went missing. Ranking by kind and then taking the top two keeps
+ * the preference and always fills both slots when the project can.
+ */
+const kindRank: Record<string, number> = {
+  demo: 0,
+  repo: 1,
+  writeup: 2,
+  notebook: 3,
+  model: 4,
+};
+
+function footerActions(p: Project) {
+  return [...p.evidence]
+    .sort((a, b) => (kindRank[a.kind] ?? 9) - (kindRank[b.kind] ?? 9))
+    .slice(0, 2);
+}
+---
+
+{
+  items.length === 0 ? (
+    <div class="well text-center">
+      <p class="text-body text-ink">Nothing here under that filter.</p>
+      <p class="mt-1 text-body text-ink-3">
+        Try All, or the deployed systems, which is where the evidence is.
+      </p>
+    </div>
+  ) : (
+    <ul class="grid gap-4 sm:grid-cols-2">
+      {items.map((p, i) => {
+        const m = maturityMeta[p.maturity];
+        const actions = footerActions(p);
+        /* The baseline as a bare figure, when it starts with one. Two
+           of the six do not, and those simply omit the "was" clause
+           rather than inventing a number. See lib/metric.ts. */
+        const was = leadingFigure(p.metric.baseline);
+        return (
+          /* min-w-0 on the item, because a grid item defaults to
+             min-width:auto and a long title would push the whole
+             column wider than its track. */
+          <li
+            class="reveal min-w-0"
+            style={`--enter-index:${i}`}
+            data-project={p.slug}
+            data-maturity={p.maturity}
+          >
+            <article class="pcard">
+              <div class="pcard-frame">
+                <img
+                  src={p.poster}
+                  alt={`${p.title}: ${p.metric.label} ${p.metric.value}, ${p.metric.context}`}
+                  width="1200"
+                  height="750"
+                  loading={i < 2 ? "eager" : "lazy"}
+                  decoding="async"
+                  class="pcard-img"
+                />
+              </div>
+
+              <div class="pcard-body">
+                <div class="flex items-baseline justify-between gap-3">
+                  {/*
+                    The title is the link, and its ::after stretches over
+                    the whole card. That keeps the markup valid: an <a>
+                    wrapping the card could not contain the footer links,
+                    because an anchor inside an anchor is not allowed and
+                    browsers silently unnest it.
+                  */}
+                  <h3 class="pcard-title min-w-0">
+                    <a href={`/work/${p.slug}`} class="pcard-link">
+                      {p.title}
+                    </a>
+                  </h3>
+                  <span class="numeric shrink-0 text-label text-ink-3">
+                    {dotDate(p.start)}
+                  </span>
+                </div>
+
+                {/* State, result and baseline on one line. */}
+                <p class="pcard-metric">
+                  <span
+                    class:list={[
+                      "pcard-dot",
+                      m.tone === "live" && "bg-live",
+                      m.tone === "caution" && "bg-caution",
+                      m.tone === "muted" && "bg-ink-4",
+                    ]}
+                    aria-hidden="true"
+                  />
+                  <span class="label label-quiet">{m.label}</span>
+                  <span class="pcard-sep" aria-hidden="true" />
+                  <span class="numeric text-ink">{p.metric.value}</span>
+                  <span class="label label-quiet">{p.metric.label}</span>
+                  {was && (
+                    <>
+                      <span class="pcard-sep" aria-hidden="true" />
+                      <span class="label label-quiet">was {was}</span>
+                    </>
+                  )}
+                </p>
+
+                <p class="pcard-desc">{p.outcome}</p>
+
+                <ul class="pcard-chips">
+                  {p.chips.slice(0, 5).map((c) => (
+                    <li class="chip">
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/*
+                The split footer. grid-auto-flow:column with 1fr columns
+                so one action spans the card and two divide it evenly,
+                without a branch here or a class per count.
+              */}
+              <div class="pcard-foot">
+                {actions.length > 0 ? (
+                  actions.map((e) => (
+                    <a
+                      href={e.url}
+                      rel="noopener"
+                      target="_blank"
+                      class="pcard-action"
+                    >
+                      <span>{actionLabel(e.kind, e.label)}</span>
+                      <Icon
+                        name={evidenceIcon[e.kind]}
+                        class="size-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                    </a>
+                  ))
+                ) : (
+                  /* The named gap, kept from the row design. Reached by
+                     Promptproof. An empty footer would read as an
+                     oversight; a named one reads as a decision. */
+                  <span class="pcard-action pcard-action--empty">
+                    <Icon
+                      name="ph:warning"
+                      class="size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>Nothing public yet</span>
+                  </span>
+                )}
+              </div>
+            </article>
+          </li>
+        );
+      })}
+    </ul>
+  )
+}
+
+<style>
+  .pcard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0.5rem;
+    border: 1px dashed var(--color-line);
+    border-radius: 1rem;
+    background-color: var(--color-surface);
+    transition:
+      border-color var(--motion-hover),
+      background-color var(--motion-hover);
+  }
+
+  /* The frame clips, the image scales inside it. aspect-ratio plus the
+     width/height attributes fix both axes, so nothing reflows as the
+     poster loads. 8/5 is the generator's own 1200x750, so object-cover
+     crops nothing. */
+  .pcard-frame {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 8 / 5;
+    border-radius: 0.5rem;
+    background-color: var(--color-sunken);
+  }
+  .pcard-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--duration-moderate) var(--ease-out);
+    will-change: transform;
+  }
+
+  .pcard-body {
+    padding: 0.875rem 0.625rem;
+  }
+
+  /* --text-card, not --text-title. A card title sits directly under a
+     section heading, and sharing that step made the two identical.
+     See the note on the token in theme.css. */
+  .pcard-title {
+    font-size: var(--text-card);
+    line-height: var(--text-card--line-height);
+    letter-spacing: var(--text-card--letter-spacing);
+    font-weight: 500;
+    color: var(--color-ink);
+    text-wrap: balance;
+  }
+  .pcard-link {
+    color: inherit;
+  }
+  /* Stretched hit area: the whole card activates the title link, while
+     the footer links keep their own z-index above it. */
+  .pcard-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .pcard-metric {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+  }
+  .pcard-dot {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 999px;
+  }
+  /* A hairline tick between clauses rather than a slash character: it
+     is punctuation, so it should not be read out or selectable. */
+  .pcard-sep {
+    width: 1px;
+    height: 0.6875rem;
+    flex: none;
+    background-color: var(--color-ink-4);
+    opacity: 0.6;
+  }
+
+  .pcard-desc {
+    margin-top: 0.625rem;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    letter-spacing: var(--text-body--letter-spacing);
+    color: var(--color-ink-2);
+    text-wrap: pretty;
+  }
+
+  .pcard-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.875rem;
+  }
+
+  .pcard-foot {
+    margin-top: auto;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    border-top: 1px dashed var(--color-line-2);
+  }
+  .pcard-foot > * + * {
+    border-left: 1px dashed var(--color-line-2);
+  }
+
+  .pcard-action {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    /* 44px tall: these are the card's real targets and they sit side by
+       side, so they carry the full touch minimum rather than the 24px
+       an inline link would get away with. */
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--text-body);
+    color: var(--color-ink-2);
+    transition:
+      color var(--motion-hover),
+      background-color var(--motion-hover);
+  }
+  .pcard-action:first-child {
+    border-bottom-left-radius: 0.5rem;
+  }
+  .pcard-action:last-child {
+    border-bottom-right-radius: 0.5rem;
+  }
+  .pcard-action--empty {
+    color: var(--color-caution);
+    cursor: default;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .pcard:hover {
+      border-color: var(--color-ink-4);
+    }
+    .pcard:hover .pcard-img {
+      transform: scale(1.03);
+    }
+    a.pcard-action:hover {
+      color: var(--color-ink);
+      background-color: var(--color-sunken);
+    }
+  }
+
+  /* Keyboard parity: a card reached by Tab confirms the same way it
+     confirms on hover, or the keyboard path is a different, worse site. */
+  .pcard:focus-within {
+    border-color: var(--color-ink-4);
+  }
+  .pcard:focus-within .pcard-img {
+    transform: scale(1.03);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pcard-img {
+      transition: none;
+    }
+    .pcard:hover .pcard-img,
+    .pcard:focus-within .pcard-img {
+      transform: none;
+    }
+  }
+
+  /* Print gets the plates, which carry the numbers, and drops six
+     full-bleed posters worth of ink. */
+  @media print {
+    .pcard-frame {
+      display: none;
+    }
+    .pcard {
+      break-inside: avoid;
+    }
+  }
+</style>

@@ -30,7 +30,7 @@
   /* ============================================================
      THE TYPE SCALE.
 
-     ONE BASE, ONE RATIO, FIVE STEPS.
+     ONE BASE, ONE RATIO, SIX STEPS.
        base  16px
        ratio 1.25 (major third)
        steps 16 / 20 / 25 / 31 / 39 / 49 / 61
@@ -43,18 +43,23 @@
      150px wordmark in the FOOTER. The page had nowhere for the eye
      to land, which is what "monotonous" actually means.
 
-     Five steps, not nine. The previous nine-size scale failed the
+     Six steps, not nine. The previous nine-size scale failed the
      opposite way: everything was slightly different, so nothing was
-     emphasised. Five is what Linear ships for a far denser product,
-     and it gets the rest of its hierarchy from weight and tone,
-     which cost nothing.
+     emphasised. Linear ships five for a far denser product and gets
+     the rest of its hierarchy from weight and tone, which cost
+     nothing; Geist ships eight. Six sits between, and --text-card is
+     the one that had to be argued for. See the note on it below.
 
      STEP-SKIPPING IS THE RULE. Two neighbouring elements are never
      adjacent on the scale, because adjacent steps read as an
      accident rather than as a decision:
        display 61 -> lead 31   three steps
        lead    31 -> body 16   three steps
-       title   28 -> body 16   two and a half
+       title   28 -> card 20   one and a half
+       card    20 -> body 16   one, and the only adjacent pair on the
+                               site: a card title sits on its own
+                               surface, so weight and containment carry
+                               what size does not
      Any one screen uses about three of the five. The scale is a
      source of sizes, not a thing to display.
 
@@ -71,6 +76,7 @@
        --text-label   12px mono uppercase. Eyebrows, dates, chips,
                       spec keys. Never a sentence.
        --text-body    16px. Nearly all content, ~246 uses per page.
+       --text-card    20px. The title of a repeated entity in a card.
        --text-title   24-28px. Section headings.
        --text-lead    22-31px. The one-statement blocks: the about
                       line, a pulled claim. Two or three lines, never
@@ -84,6 +90,23 @@
   --text-label: 0.75rem; /* 12px mono, uppercase */
   --text-label--line-height: 1rem;
   --text-label--letter-spacing: 0.04em;
+
+  /* Step 1. The title of a repeated entity inside a card or a row.
+     Fixed, not fluid: a 20-to-22px ramp is not worth a clamp.
+
+     ADDING THIS STEP IS A DELIBERATE DEVIATION. The rule is to count
+     usage first, and a step used under ~50 times is hierarchy you could
+     have got from weight or tone. This one appears about ten times a
+     build. It earns its place anyway because the alternative was worse:
+     card titles were sharing --text-title with the section heading
+     directly above them, so "Selected systems" and "Spindle Sentinel"
+     rendered at an identical 28px and the heading stopped reading as a
+     heading. Weight and tone could not fix that, because the section
+     heading already uses both. Six steps, still fewer than Geist's
+     eight, and every screen uses three of them. */
+  --text-card: 1.25rem; /* 20px */
+  --text-card--line-height: 1.6rem;
+  --text-card--letter-spacing: -0.015em;
 
   /* 24px at 320 -> 28px at 1440 */
   --text-title: clamp(1.5rem, 1.4286rem + 0.3571vw, 1.75rem);
@@ -443,6 +466,16 @@ body {
     /* Headings are the one place a bad break is visible, because
        there are only two or three words to break. */
     text-wrap: balance;
+  }
+
+  /* The page heading, when a band carries it. Three scale steps above
+     body and two above a card title, so a page whose content is itself
+     a grid of titled cards still has one thing that is clearly the
+     page. Paired with the h1 tag by Band, never applied by hand. */
+  .band-title-lead {
+    font-size: var(--text-display);
+    line-height: var(--text-display--line-height);
+    letter-spacing: var(--text-display--letter-spacing);
   }
 
   /* ----------------------------------------------------------
