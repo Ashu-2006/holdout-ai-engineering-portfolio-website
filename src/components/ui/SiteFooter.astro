@@ -9,22 +9,21 @@ import ContactBlock from "../blocks/ContactBlock.astro";
 ---
 
 {/*
-  The footer reverses against the page: dark under a light page, light
-  under a dark one.
+  The footer sits on the page's own ground, not a reversed one.
 
-  It needs no top border any more. A hairline separates two things
-  sharing a ground; here the ground itself changes, so a rule on top of
-  that is a second separator doing a job already done. It would also
-  have been drawn in the footer's OWN inverted --color-line-2, which is
-  a white alpha and invisible against the light page above it.
+  It was briefly reversed, and reverting that hands the emphasis back to
+  where it belongs. The compose card carries .invert-surface, and
+  .invert-surface flips back when nested, so a reversed footer forced the
+  card to the page palette and the two swapped roles: the whole footer
+  became the loud thing and its one real action became a quiet panel
+  inside it. With the footer neutral the card is top-level again and
+  reads as the single reversed block on the page.
 
-  The compose card inside carries .invert-surface too. Nested, it
-  resolves to the same palette rather than flipping back, so the card
-  becomes a raised panel within the dark footer instead of a hole
-  punched through it. That is the right relationship: on /contact the
-  card is the emphasis against a light page, and here the footer is.
+  The top hairline comes back with it. A rule separates two things that
+  share a ground, which is again the case here; while the ground itself
+  changed, the rule was a second separator doing a job already done.
 */}
-<footer class="invert-surface relative mt-12">
+<footer class="relative mt-12 border-t border-line-2">
   <div class="column py-10">
     <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
       <h2 class="band-title">Get in touch</h2>
