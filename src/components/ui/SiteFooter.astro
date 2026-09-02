@@ -1,12 +1,11 @@
 ---
 /**
- * Footer: the contact teaser, then the city.
+ * Footer: the contact teaser and the outline wordmark, nothing else.
  * The contact surface lives in ContactBlock, shared with /contact so
  * the two cannot drift; the footer renders the compact variant and
- * links the page for the rest. Skyline closes the page.
+ * links the page for the rest.
  */
 import ContactBlock from "../blocks/ContactBlock.astro";
-import Skyline from "./Skyline.astro";
 ---
 
 {/*
@@ -43,14 +42,38 @@ import Skyline from "./Skyline.astro";
   </div>
 
   {/*
-    The city replaces the outline wordmark that used to close the page.
-
-    Both were doing the same job, a full-bleed flourish at the bottom
-    edge, and running both would have been two closing gestures stacked.
-    The wordmark was 150px of decorative type repeating a name that is
-    already the h1 on every page; the city says nothing and is more fun,
-    which for the last thing a visitor sees is the better trade.
+    The outline wordmark. Clipped to half its height so it reads as a
+    watermark rising out of the page edge rather than as a heading;
+    stroked SVG rather than -webkit-text-stroke so it renders the
+    same off Chromium.
   */}
-  <Skyline />
-
+  <div
+    class="pointer-events-none overflow-hidden border-t border-line-2 select-none"
+    aria-hidden="true"
+  >
+    <svg
+      viewBox="0 0 1200 150"
+      class="mark -mb-px block h-16 w-full sm:h-24"
+      preserveAspectRatio="xMidYMax slice"
+    >
+      <text
+        x="600"
+        y="140"
+        text-anchor="middle"
+        font-family="Geist, system-ui, sans-serif"
+        font-size="150"
+        font-weight="600"
+        letter-spacing="-6"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.25">ASHUTOSH</text
+      >
+    </svg>
+  </div>
 </footer>
+
+<style>
+  .mark {
+    color: var(--color-line);
+  }
+</style>
