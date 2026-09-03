@@ -4,8 +4,8 @@
   "description": "I build machine learning that has to survive contact with a factory floor, not just a notebook.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fcfcfb",
-  "theme_color": "#fcfcfb",
+  "background_color": "#f7f7f5",
+  "theme_color": "#f7f7f5",
   "icons": [
     {
       "src": "/icon-192.png",
