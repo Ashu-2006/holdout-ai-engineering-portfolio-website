@@ -1,0 +1,198 @@
+---
+/**
+ * The lab frame: one subject dead centre, one dial on the right.
+ *
+ * NOT THE PAGE FRAME. Labs deliberately do not use PageLayout. The top
+ * bar, the dock, the footer and the sheet rules are all things on
+ * screen that are not the subject, and every one of them gets read as
+ * context for it. The only chrome here is the dial.
+ *
+ * NOT PORTFOLIO SURFACE. Every lab carries noindex, `Disallow:
+ * /playground` in robots.txt covers these routes as a prefix, and
+ * sitemap.xml is an explicit allowlist so none of them can leak in.
+ *
+ * DARK BY DEFAULT, WITHOUT WRITING IT DOWN. The reference designs are
+ * dark, so labs open dark. The boot script sets the attribute for this
+ * document only and never touches the site's stored preference, or
+ * looking at a component once would re-theme the whole portfolio.
+ */
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  /** localStorage key this lab reads its theme back from. */
+  storageKey: string;
+}
+const { title, storageKey } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="robots" content="noindex, nofollow, noarchive, noimageindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+
+    {/* Same two faces and the same non-blocking load as the rest of the
+        site. A lab that renders the subject in a fallback stack is
+        measuring the wrong subject. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap"
+      />
+    </noscript>
+
+    <script is:inline define:vars={{ storageKey }}>
+      /*
+        The lab's own theme, restored before first paint so a reload does
+        not flash the wrong ground behind the subject. Read from this
+        lab's state, NOT from the site's "theme" key, and defaulting to
+        dark because the reference designs are dark.
+      */
+      try {
+        var s = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        var t = (s.a && s.a.theme) || "dark";
+        if (t === "system") delete document.documentElement.dataset.theme;
+        else document.documentElement.dataset.theme = t;
+      } catch (e) {
+        /* Private mode, or state written by an older build. Dark it is,
+           which is already on the element. */
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="lab">
+      <slot />
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  /* No page frame, so the reset lives here. 100dvh rather than 100vh:
+     on mobile the dynamic viewport is the difference between a stage
+     that centres and one that hides behind the address bar. */
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background-color: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .lab {
+    display: grid;
+    grid-template-columns: 1fr clamp(19rem, 24vw, 23rem);
+    height: 100dvh;
+    /* Both tracks own their own scrolling. Without this a tall dial
+       makes the whole document scroll and the centred subject drifts
+       off centre, which is the one thing this page has to get right. */
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     THE STAGE. Shared by every lab, because "centred on a ground
+     you can change, at a zoom you can change" is the same job
+     every time.
+     ============================================================ */
+  .stage {
+    --lab-zoom: 1;
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 100%;
+    overflow: auto;
+    background-color: var(--color-ground);
+  }
+  .stage[data-backdrop="surface"] {
+    background-color: var(--color-surface);
+  }
+  .stage[data-backdrop="sunken"] {
+    background-color: var(--color-sunken);
+  }
+
+  /*
+     An 8px reference grid, off by default. It is here for one job:
+     checking that a component's own steps land on the same lattice the
+     rest of the site is drawn on, which is hard to judge against a flat
+     ground and trivial against a lattice.
+  */
+  .stage[data-grid="on"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, var(--color-line-2) 0 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-line-2) 0 1px, transparent 1px);
+    background-size: 8px 8px;
+    pointer-events: none;
+  }
+
+  /*
+     Zoom is a transform on a wrapper rather than a font-size change, so
+     what gets magnified is the rendered component, hairlines and
+     subpixel text included. Scaling the type instead would hide exactly
+     the rounding errors this exists to find.
+  */
+  .stage-scroll {
+    position: relative;
+    padding: 2rem 1.5rem;
+    transform: scale(var(--lab-zoom));
+    transform-origin: center center;
+    /*
+       A centred grid item is sized to max-content, so without these two
+       it grows past its track and the subject's own `max-width: 100%`
+       resolves against a box that is already too wide. The post lab's
+       736px list then stayed 736px inside a 390px stage and you had to
+       scroll sideways to reach the rail. Clamped here, the subject
+       shrinks to the viewport the way it does in its real column, and
+       the width dial is still there when a fixed width is the point.
+    */
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /*
+     Under 60rem the dial cannot be a rail: at 19rem it would leave the
+     stage narrower than most subjects. It becomes a sheet under the
+     stage instead, hairline on top rather than on the side.
+
+     60/40, and the stage gets the larger share because it holds the
+     subject. On a genuinely short viewport the subject can be taller
+     than its stage and the stage scrolls. That is the honest outcome of
+     a full-size component next to a control panel, not something to
+     solve by shrinking the subject: the width dial is right there.
+  */
+  @media (max-width: 60rem) {
+    .lab {
+      grid-template-columns: 1fr;
+      grid-template-rows: 60dvh 40dvh;
+    }
+    .lab > aside {
+      border-left: none;
+      border-top: 1px solid var(--color-line);
+    }
+    /* Less air around the subject, because the stage is now the scarce
+       axis rather than the generous one. */
+    .stage-scroll {
+      padding: 1rem 0.75rem;
+    }
+  }
+</style>

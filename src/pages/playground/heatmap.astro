@@ -1,0 +1,29 @@
+---
+/**
+ * /playground/heatmap - the contribution grid lab.
+ *
+ * WHAT THIS PAGE IS FOR: dialling, and specifically dialling the
+ * APPEAR. The grid's column wipe is the only piece of motion on the
+ * site that a reader watches rather than passes through, and on the
+ * home page it fires once, below the fold, when an observer decides.
+ * That is the right behaviour there and it makes the animation
+ * impossible to judge, so this lab drives it off the stage instead and
+ * puts Replay next to the stagger and duration sliders.
+ *
+ * V1 is what ships, measured. V2 to V5 are four arguments about what a
+ * contribution grid could be instead, sharing its tokens so the
+ * comparison stays a comparison. The year comes from lib/heat.ts, the
+ * same module the shipped figure reads.
+ *
+ * The frame, the stage and the panel are shared with the other labs.
+ * See LabShell and DialKit.
+ */
+import LabShell from "../../layouts/LabShell.astro";
+import HeatStage from "../../components/playground/HeatStage.astro";
+import HeatDial from "../../components/playground/HeatDial.astro";
+---
+
+<LabShell title="Grid lab" storageKey="heatlab.v1">
+  <HeatStage />
+  <HeatDial />
+</LabShell>

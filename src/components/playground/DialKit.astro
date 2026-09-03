@@ -1,0 +1,1080 @@
+---
+/**
+ * The dial kit. One panel, driven by a spec, reused by every lab.
+ *
+ * WHAT THIS IS FOR. Judging a component by regenerating it is judging
+ * two components a minute apart from memory. Every value that was a
+ * decision becomes a live control, so the question stops being "does
+ * 14px look right" and becomes "at what number does it stop looking
+ * right", which is answerable in one pass.
+ *
+ * THE RUNTIME NEVER NAMES A CONTROL. It reads `data-var`, `data-flag`
+ * and `data-attr` off the DOM and does the same three things forever.
+ * Adding a dial is one line in a spec file. Reset works the same way:
+ * it restores every input to its own HTML default attribute, so the
+ * defaults have exactly one home and it is the markup.
+ *
+ * The panel carries all the prose. The stage carries the component and
+ * nothing else, because a variation label sitting next to a component
+ * gets read as part of it.
+ */
+import type { Group, Lock, Stress, Variant } from "./dial-spec";
+
+interface Props {
+  /** Mono eyebrow at the top of the panel. */
+  eyebrow: string;
+  variants: Variant[];
+  groups: Group[];
+  /** localStorage key. Distinct per lab, or two labs overwrite each other. */
+  storageKey: string;
+  /** Selector written into the Copy CSS block, e.g. ".pc". */
+  selector: string;
+  lock?: Lock;
+  stress?: Stress;
+  /**
+   * Adds a Replay button that re-runs the stage's enter animation.
+   * Worth it where the appear IS the thing under review, like the
+   * contribution grid's column wipe, and noise where it is not.
+   */
+  replay?: boolean;
+  /** Figma node reference, shown in the panel footer. */
+  source?: string;
+}
+
+const {
+  eyebrow,
+  variants,
+  groups,
+  storageKey,
+  selector,
+  lock,
+  stress,
+  source,
+  replay = false,
+} = Astro.props;
+
+const first = variants[0];
+---
+
+<aside
+  class="dial"
+  id="dial"
+  aria-label="Controls"
+  data-key={storageKey}
+  data-selector={selector}
+>
+  <header class="dial-head">
+    <div>
+      <p class="dial-eyebrow">{eyebrow}</p>
+      <p class="dial-sub" id="dial-sub">{`${first.index} ${first.name}`}</p>
+    </div>
+    <div class="dial-btns">
+      {replay && (
+        <button type="button" class="dial-btn" data-act="replay">
+          Replay
+        </button>
+      )}
+      <button type="button" class="dial-btn" data-act="copy">Copy CSS</button>
+      <button type="button" class="dial-btn" data-act="reset">Reset</button>
+    </div>
+  </header>
+
+  <noscript>
+    <p class="dial-note dial-note--warn">
+      Controls need JavaScript. The stage is rendering at V1 reference
+      spec, which is where every dial starts anyway.
+    </p>
+  </noscript>
+
+  <div class="dial-scroll">
+    <fieldset class="dial-group">
+      <legend class="dial-legend">Variation</legend>
+      <div class="dial-vars" role="radiogroup" aria-label="Variation">
+        {
+          variants.map((v, i) => (
+            <label class="dial-var">
+              <input
+                type="radio"
+                name="variant"
+                value={v.v}
+                data-attr="variant"
+                data-label={`${v.index} ${v.name}`}
+                checked={i === 0}
+              />
+              <span class="dial-var-body">
+                <span class="dial-var-head">
+                  <span class="dial-var-index">{v.index}</span>
+                  <span class="dial-var-name">{v.name}</span>
+                </span>
+                <span class="dial-var-note">{v.note}</span>
+              </span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+
+    {
+      groups.map((g) => (
+        <fieldset class="dial-group">
+          <legend class="dial-legend">{g.title}</legend>
+          {g.note && <p class="dial-note">{g.note}</p>}
+
+          {lock && lock.group === g.title && (
+            <label class="dial-switch">
+              <span class="dial-name">{lock.label}</span>
+              <input
+                type="checkbox"
+                id="lab-lock"
+                data-lock-target={lock.target}
+                data-lock-from={lock.from}
+                data-lock-minus={lock.minus}
+                checked={lock.on}
+              />
+              <span class="dial-track" aria-hidden="true">
+                <span class="dial-knob" />
+              </span>
+            </label>
+          )}
+
+          {g.controls.map((c) =>
+            c.kind === "range" ? (
+              <div class="dial-range">
+                <label class="dial-name" for={c.id}>
+                  {c.name}
+                </label>
+                <output class="dial-out" for={c.id}>{`${c.value}${c.unit}`}</output>
+                <input
+                  type="range"
+                  id={c.id}
+                  min={c.min}
+                  max={c.max}
+                  step={c.step}
+                  value={String(c.value)}
+                  data-var={c.cssVar}
+                  data-unit={c.unit}
+                  data-zero-attr={c.zeroAttr}
+                  data-no-export={c.export === false ? "" : undefined}
+                />
+              </div>
+            ) : c.kind === "switch" ? (
+              <label class="dial-switch">
+                <span class="dial-name">{c.name}</span>
+                <input
+                  type="checkbox"
+                  id={c.id}
+                  data-flag={c.flag}
+                  checked={c.on}
+                />
+                <span class="dial-track" aria-hidden="true">
+                  <span class="dial-knob" />
+                </span>
+              </label>
+            ) : (
+              <div class="dial-seg-row">
+                <span class="dial-name" id={`lbl-${c.id}`}>
+                  {c.name}
+                </span>
+                {/* --seg-n and --seg-i let one indicator slide between
+                    two cells or three without a rule per group. The
+                    script sets --seg-active from the checked input's
+                    index, which keeps the slide generic. */}
+                <div
+                  class="dial-seg"
+                  role="radiogroup"
+                  aria-labelledby={`lbl-${c.id}`}
+                  style={`--seg-n:${c.options.length}`}
+                >
+                  <span class="dial-seg-ind" aria-hidden="true" />
+                  {c.options.map((o, i) => (
+                    <label class="dial-seg-item" style={`--seg-i:${i}`}>
+                      <input
+                        type="radio"
+                        name={c.id}
+                        value={o.v}
+                        data-attr={c.attr}
+                        checked={o.v === c.value}
+                      />
+                      <span>{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ),
+          )}
+
+          {stress && stress.group === g.title && (
+            <label class="dial-switch">
+              <span class="dial-name">{stress.label}</span>
+              <input
+                type="checkbox"
+                id="lab-stress"
+                data-stress-target={stress.target}
+                data-stress-text={stress.text}
+              />
+              <span class="dial-track" aria-hidden="true">
+                <span class="dial-knob" />
+              </span>
+            </label>
+          )}
+        </fieldset>
+      ))
+    }
+
+    <p class="dial-foot">
+      {source && <>Figma <span class="dial-mono">{source}</span>. </>}State is
+      remembered in this browser.
+    </p>
+  </div>
+</aside>
+
+<style>
+  .dial {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background-color: var(--color-surface);
+    border-left: 1px solid var(--color-line);
+  }
+
+  .dial-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .dial-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    line-height: var(--text-label--line-height);
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+  }
+  .dial-sub {
+    margin-top: 0.125rem;
+    font-size: var(--text-body);
+    line-height: 1.3;
+    color: var(--color-ink);
+  }
+
+  .dial-btns {
+    display: flex;
+    flex: none;
+    gap: 0.375rem;
+  }
+  .dial-btn {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-chip);
+    background-color: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    line-height: 1.125rem;
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    color: var(--color-ink-2);
+    cursor: pointer;
+    transition:
+      color var(--motion-hover),
+      border-color var(--motion-hover),
+      background-color var(--motion-hover);
+  }
+  .dial-btn:hover {
+    color: var(--color-ink);
+    border-color: var(--color-ink-4);
+  }
+
+  /* The panel scrolls, the header does not. Seven groups is past what
+     fits on a laptop, and losing Copy and Reset off the top is how a
+     dialled state gets lost. */
+  .dial-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .dial-group {
+    padding: 0.875rem 1rem 1rem;
+    border-bottom: 1px solid var(--color-line-2);
+  }
+  .dial-legend {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    line-height: var(--text-label--line-height);
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+    padding-bottom: 0.5rem;
+  }
+  .dial-note {
+    margin-bottom: 0.625rem;
+    font-size: var(--text-label);
+    line-height: 1.35;
+    color: var(--color-ink-3);
+  }
+  .dial-note--warn {
+    margin: 0.75rem 1rem;
+    padding: 0.625rem;
+    border: 1px dashed var(--color-caution);
+    border-radius: var(--radius-row);
+    color: var(--color-caution);
+  }
+
+  .dial-name {
+    font-size: var(--text-label);
+    line-height: 1.125rem;
+    color: var(--color-ink-2);
+  }
+
+  /* ----------------------------------------------------------
+     Range. Name and value on one line, track under it full
+     width. Putting the track in the same row as the label left
+     it about 90px long, which is not a control, it is a hint.
+     ---------------------------------------------------------- */
+  .dial-range {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    column-gap: 0.5rem;
+    padding-block: 0.3125rem;
+  }
+  .dial-out {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-size: var(--text-label);
+    color: var(--color-ink);
+    /* Grows leftwards into empty space instead of pushing the row. */
+    transform-origin: right center;
+    transition:
+      transform var(--motion-hover),
+      color var(--motion-hover);
+  }
+  .dial-range input[type="range"] {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 0.25rem;
+    accent-color: var(--color-ink);
+    /* 20px of pointer height on a 4px track: the thumb is the hit
+       target, and a 4px one is a miss on a trackpad. */
+    height: 1.25rem;
+    cursor: ew-resize;
+  }
+  .dial-range input[type="range"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+  .dial-range:has(input:disabled) .dial-name,
+  .dial-range:has(input:disabled) .dial-out {
+    opacity: 0.5;
+  }
+
+  /* THE VALUE READOUT IS THE FEEDBACK. While a slider is held its own
+     number grows and goes full contrast, and the stage outlines its
+     boxes. Together they answer the only question a spacing dial
+     raises: which gap is this. */
+  .dial-range:has(input:active) .dial-out,
+  .dial-range:has(input:focus-visible) .dial-out {
+    transform: scale(1.14);
+    color: var(--color-ink);
+  }
+  .dial-range:has(input:active) .dial-name {
+    color: var(--color-ink);
+  }
+
+  /* ----------------------------------------------------------
+     Switch. A real track and knob, because a bare checkbox in a
+     panel of sliders reads as a list item rather than a state.
+     ---------------------------------------------------------- */
+  .dial-switch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    /* 36px tall, so the whole row is the target and not just the
+       20px track. */
+    min-height: 2.25rem;
+    cursor: pointer;
+  }
+  .dial-switch input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .dial-track {
+    position: relative;
+    flex: none;
+    width: 2.125rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background-color: var(--color-raised);
+    border: 1px solid var(--color-line);
+    transition:
+      background-color var(--motion-hover),
+      border-color var(--motion-hover);
+  }
+  .dial-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 999px;
+    background-color: var(--color-ink-4);
+    /*
+       A small overshoot on the travel only, because the knob is the one
+       thing in this panel that reads as a physical object being thrown.
+       Colour crossfades on a plain curve; an overshooting colour is
+       just a flicker.
+
+       Not a shared token, and deliberately. The four in theme.css are
+       ease-out, ease-in-out, ease-exit and ease-swing, and none of them
+       overshoot; the one that did (ease-spring, since removed) overshot
+       by 285% and put the knob outside the switch. This curve overshoots
+       by roughly 1.4px, which is the whole 2px of clearance the track
+       has and no more. If a second control ever needs it, promote it.
+    */
+    --knob-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      transform var(--duration-moderate) var(--knob-ease),
+      background-color var(--motion-hover);
+  }
+  .dial-switch input:checked + .dial-track {
+    background-color: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+  .dial-switch input:checked + .dial-track .dial-knob {
+    transform: translateX(0.875rem);
+    background-color: var(--color-ground);
+  }
+  .dial-switch input:focus-visible + .dial-track {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+  /* :has, not a sibling combinator: the label sits BEFORE the input in
+     source order so the track can follow it with `+`, which leaves no
+     forward selector from the input back to the name. */
+  .dial-switch:has(input:checked) .dial-name {
+    color: var(--color-ink);
+  }
+
+  /* ----------------------------------------------------------
+     Segmented control. Hairline box, one sliding fill.
+     ---------------------------------------------------------- */
+  .dial-seg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block: 0.375rem;
+  }
+  .dial-seg {
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    /* Equal tracks, or the indicator cannot be one width. "Dashed",
+       "Solid" and "None" are 6, 5 and 4 characters, so hugging the
+       labels would make the slide land short of the cell it names. */
+    grid-auto-columns: 1fr;
+    flex: none;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-chip);
+    overflow: hidden;
+  }
+  .dial-seg-item {
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+  }
+  /* No dividers between cells. With a fill that slides, a hairline is
+     redundant, and the one line crossing the active cell read as a
+     rendering fault rather than as structure. */
+  .dial-seg-item input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .dial-seg-item span {
+    display: block;
+    padding: 0.25rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    line-height: 1.125rem;
+    letter-spacing: var(--text-label--letter-spacing);
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--color-ink-3);
+    transition: color var(--motion-hover);
+  }
+  .dial-seg-item:hover span {
+    color: var(--color-ink-2);
+  }
+  .dial-seg-item input:checked + span {
+    color: var(--color-ground);
+  }
+  .dial-seg-item input:focus-visible + span {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -2px;
+  }
+  .dial-seg-ind {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(100% / var(--seg-n, 3));
+    background-color: var(--color-ink);
+    transform: translateX(calc(100% * var(--seg-active, 0)));
+    transition: transform var(--duration-moderate) var(--ease-out);
+  }
+
+  /* ----------------------------------------------------------
+     Variation list. The note is the point: this is where the
+     argument for each layout lives, so the stage can stay empty.
+     ---------------------------------------------------------- */
+  .dial-vars {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .dial-var {
+    position: relative;
+    display: block;
+    padding: 0.5rem 0.625rem;
+    border: 1px dashed var(--color-line-2);
+    border-radius: var(--radius-row);
+    cursor: pointer;
+    transition:
+      border-color var(--motion-hover),
+      background-color var(--motion-hover);
+  }
+  .dial-var:hover {
+    border-color: var(--color-line);
+  }
+  .dial-var input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .dial-var-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .dial-var-index {
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--text-label--letter-spacing);
+    color: var(--color-ink-3);
+  }
+  .dial-var-name {
+    font-size: var(--text-body);
+    line-height: 1.25;
+    color: var(--color-ink-2);
+  }
+  .dial-var-note {
+    display: block;
+    margin-top: 0.1875rem;
+    font-size: var(--text-label);
+    line-height: 1.35;
+    color: var(--color-ink-3);
+  }
+  .dial-var:has(input:checked) {
+    border-style: solid;
+    border-color: var(--color-ink-4);
+    background-color: var(--color-sunken);
+  }
+  .dial-var:has(input:checked) .dial-var-name {
+    color: var(--color-ink);
+  }
+  .dial-var:has(input:focus-visible) {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  /* Selection bar, scaling out of the vertical centre so the row reads
+     as being picked rather than as having a decoration added. */
+  .dial-var::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 0.375rem;
+    bottom: 0.375rem;
+    width: 2px;
+    border-radius: 2px;
+    background-color: var(--color-ink);
+    transform: scaleY(0);
+    transition: transform var(--duration-moderate) var(--ease-out);
+  }
+  .dial-var:has(input:checked)::before {
+    transform: scaleY(1);
+  }
+
+  /* Copy confirmed. The fill goes to full ink for a beat, the same
+     signal the segmented control uses for "active", so it needs no new
+     vocabulary. */
+  .dial-btn.is-ok {
+    color: var(--color-ground);
+    background-color: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+
+  .dial-foot {
+    padding: 0.875rem 1rem 1.25rem;
+    font-size: var(--text-label);
+    line-height: 1.4;
+    color: var(--color-ink-4);
+  }
+  .dial-mono {
+    font-family: var(--font-mono);
+  }
+
+  /* ----------------------------------------------------------
+     The panel arrives from the right, once, on load. 10px and a
+     fade, staggered by group, so the eye lands on the subject
+     first and finds the controls a beat later.
+     ---------------------------------------------------------- */
+  @keyframes dial-in {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .dial-head,
+  .dial-group {
+    animation: dial-in var(--duration-moderate) var(--ease-out) both;
+  }
+  .dial-head {
+    animation-delay: 120ms;
+  }
+  /* Only the first four stagger. Past that the delay is longer than
+     anyone waits before scrolling, and an element still mid-fade when
+     it is scrolled to looks like a loading bug. */
+  .dial-group:nth-of-type(1) {
+    animation-delay: 160ms;
+  }
+  .dial-group:nth-of-type(2) {
+    animation-delay: 200ms;
+  }
+  .dial-group:nth-of-type(3) {
+    animation-delay: 240ms;
+  }
+  .dial-group:nth-of-type(n + 4) {
+    animation-delay: 280ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dial-track,
+    .dial-knob,
+    .dial-btn,
+    .dial-var,
+    .dial-var::before,
+    .dial-out,
+    .dial-seg-ind,
+    .dial-seg-item span {
+      transition: none;
+    }
+    /* The selection bar and the segmented fill are state, not
+       decoration, so they stay. They just arrive instantly. */
+    .dial-head,
+    .dial-group {
+      animation: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  /*
+    The whole dial, and it never names a control.
+    Read data-var / data-flag / data-attr off the DOM, write the three
+    kinds of thing onto #stage, mirror the lot into localStorage.
+  */
+  (function () {
+    var stage = document.getElementById("stage");
+    var dial = document.getElementById("dial");
+    if (!stage || !dial) return;
+
+    var KEY = dial.getAttribute("data-key");
+    var SELECTOR = dial.getAttribute("data-selector") || ".component";
+    var ranges = [].slice.call(dial.querySelectorAll("input[data-var]"));
+    var flags = [].slice.call(dial.querySelectorAll("input[data-flag]"));
+    var radios = [].slice.call(dial.querySelectorAll("input[data-attr]"));
+    var lock = document.getElementById("lab-lock");
+    var stress = document.getElementById("lab-stress");
+    var subEl = document.getElementById("dial-sub");
+
+    var stressEl = stress
+      ? document.getElementById(stress.getAttribute("data-stress-target"))
+      : null;
+    var stressWas = stressEl ? stressEl.textContent : "";
+
+    var byId = {};
+    ranges.forEach(function (r) {
+      byId[r.id] = r;
+    });
+
+    /* ---- the three writers ------------------------------------ */
+
+    function writeRange(el) {
+      var unit = el.getAttribute("data-unit") || "";
+      stage.style.setProperty(el.getAttribute("data-var"), el.value + unit);
+      var out = dial.querySelector('output[for="' + el.id + '"]');
+      if (out) out.value = el.value + unit;
+      /*
+        The one conditional in the writers, and it is declared in the
+        spec rather than hardcoded here. 0 is not a valid line-clamp:
+        setting it collapses the paragraph to nothing instead of
+        removing the clamp, so "no clamp" has to be an attribute.
+      */
+      var zero = el.getAttribute("data-zero-attr");
+      if (zero) stage.dataset[zero] = el.value === "0" ? "off" : "on";
+    }
+
+    function writeFlag(el) {
+      stage.dataset[el.getAttribute("data-flag")] = el.checked ? "on" : "off";
+    }
+
+    function writeRadio(el) {
+      if (!el.checked) return;
+      var attr = el.getAttribute("data-attr");
+      /*
+        Theme writes <html data-theme> and NOTHING ELSE.
+
+        The obvious version wrote localStorage."theme", the site's own
+        key, so that the lab and the rest of the pages agreed. That
+        means opening a lab once silently pins every other page of the
+        site to dark, because the lab's default is dark and applying a
+        default is indistinguishable from a choice. Each lab remembers
+        its own theme in its own state instead.
+      */
+      if (attr === "@theme") {
+        if (el.value === "system") delete document.documentElement.dataset.theme;
+        else document.documentElement.dataset.theme = el.value;
+        return;
+      }
+      stage.dataset[attr] = el.value;
+      if (attr === "variant" && subEl) {
+        subEl.textContent = el.getAttribute("data-label") || el.value;
+      }
+    }
+
+    /*
+      The segmented control's sliding fill, kept generic: find the
+      checked input's index inside its own group and hand it to the
+      indicator as --seg-active. No rule per group, no rule per option
+      count, and adding a fourth option to any of them needs no CSS.
+    */
+    function slideSeg(el) {
+      var seg = el.closest ? el.closest(".dial-seg") : null;
+      if (!seg) return;
+      var items = [].slice.call(seg.querySelectorAll('input[type="radio"]'));
+      var i = items.indexOf(el);
+      if (i > -1) seg.style.setProperty("--seg-active", String(i));
+    }
+
+    /*
+      REPLAY THE STAGE'S ENTER.
+
+      Switching V1 to V4 without this is a jump cut: the layout changes
+      under the cursor and the eye has to re-find the title. Stripping
+      the animation, forcing a reflow and putting it back is the only
+      way to restart a CSS animation from script, and offsetWidth is the
+      read that forces the reflow. Do not "optimise" it away.
+    */
+    function replayEnter() {
+      stage.dataset.enter = "off";
+      void stage.offsetWidth;
+      delete stage.dataset.enter;
+    }
+
+    /*
+      Dragging a spacing dial outlines the boxes on the stage. Held for
+      500ms past release, because letting go and having the outlines
+      vanish in the same frame loses the before/after comparison that is
+      the reason to show them.
+    */
+    var dragTimer = null;
+    function drag(on) {
+      if (dragTimer) clearTimeout(dragTimer);
+      if (on) {
+        stage.dataset.dragging = "on";
+      } else {
+        dragTimer = setTimeout(function () {
+          stage.dataset.dragging = "off";
+        }, 500);
+      }
+    }
+
+    /* ---- derived sliders and content stress ------------------- */
+
+    function applyLock() {
+      if (!lock) return;
+      var target = byId[lock.getAttribute("data-lock-target")];
+      var from = byId[lock.getAttribute("data-lock-from")];
+      var minus = byId[lock.getAttribute("data-lock-minus")];
+      if (!target || !from || !minus) return;
+      target.disabled = lock.checked;
+      if (lock.checked) {
+        target.value = String(
+          Math.max(0, parseFloat(from.value) - parseFloat(minus.value)),
+        );
+      }
+      writeRange(target);
+    }
+
+    function feedsLock(id) {
+      if (!lock) return false;
+      return (
+        id === lock.getAttribute("data-lock-from") ||
+        id === lock.getAttribute("data-lock-minus")
+      );
+    }
+
+    function applyStress() {
+      if (!stressEl || !stress) return;
+      stressEl.textContent = stress.checked
+        ? stress.getAttribute("data-stress-text")
+        : stressWas;
+    }
+
+    function applyAll() {
+      ranges.forEach(writeRange);
+      flags.forEach(writeFlag);
+      radios.forEach(function (el) {
+        writeRadio(el);
+        if (el.checked) slideSeg(el);
+      });
+      applyLock();
+      applyStress();
+    }
+
+    /* ---- persistence ------------------------------------------ */
+
+    function save() {
+      var s = { r: {}, f: {}, a: {} };
+      ranges.forEach(function (el) {
+        s.r[el.id] = el.value;
+      });
+      flags.forEach(function (el) {
+        s.f[el.id] = el.checked;
+      });
+      radios.forEach(function (el) {
+        if (el.checked) s.a[el.name] = el.value;
+      });
+      if (lock) s.lock = lock.checked;
+      if (stress) s.stress = stress.checked;
+      try {
+        localStorage.setItem(KEY, JSON.stringify(s));
+      } catch (e) {
+        /* Private mode. The lab still works, it just forgets. */
+      }
+    }
+
+    function restore() {
+      var raw = null;
+      try {
+        raw = localStorage.getItem(KEY);
+      } catch (e) {}
+      if (!raw) return;
+      var s;
+      try {
+        s = JSON.parse(raw);
+      } catch (e) {
+        return;
+      }
+      ranges.forEach(function (el) {
+        if (s.r && s.r[el.id] != null) el.value = s.r[el.id];
+      });
+      flags.forEach(function (el) {
+        if (s.f && typeof s.f[el.id] === "boolean") el.checked = s.f[el.id];
+      });
+      if (s.a) {
+        Object.keys(s.a).forEach(function (name) {
+          var hit = dial.querySelector(
+            'input[name="' + name + '"][value="' + s.a[name] + '"]',
+          );
+          if (hit) hit.checked = true;
+        });
+      }
+      if (lock && typeof s.lock === "boolean") lock.checked = s.lock;
+      if (stress && typeof s.stress === "boolean") stress.checked = s.stress;
+    }
+
+    /* ---- reset: back to the HTML defaults --------------------- */
+
+    function reset() {
+      ranges.forEach(function (el) {
+        el.value = el.getAttribute("value");
+      });
+      flags
+        .concat(lock ? [lock] : [], stress ? [stress] : [])
+        .forEach(function (el) {
+          el.checked = el.hasAttribute("checked");
+        });
+      radios.forEach(function (el) {
+        el.checked = el.hasAttribute("checked");
+      });
+      try {
+        localStorage.removeItem(KEY);
+      } catch (e) {}
+      applyAll();
+      save();
+    }
+
+    /* ---- copy: the dialled values as a CSS block -------------- */
+
+    function cssBlock() {
+      var variant = dial.querySelector('input[name="variant"]:checked');
+      var lines = [
+        "/* " +
+          SELECTOR +
+          ", dialled " +
+          (variant ? variant.getAttribute("data-label") : "V1") +
+          " */",
+        SELECTOR + " {",
+      ];
+      ranges.forEach(function (el) {
+        /* Zoom is how close you are standing, not something the
+           component has. It was landing in the exported block and would
+           have been pasted into a stylesheet as a real declaration. */
+        if (el.hasAttribute("data-no-export")) return;
+        var unit = el.getAttribute("data-unit") || "";
+        lines.push(
+          "  " + el.getAttribute("data-var") + ": " + el.value + unit + ";",
+        );
+      });
+      lines.push("}");
+      lines.push("");
+      lines.push("/* Flags */");
+      Object.keys(stage.dataset)
+        .sort()
+        .forEach(function (k) {
+          /* Astro stamps its scope id into the same dataset, so an
+             unfiltered dump shipped `data-astroCid...:` in the export.
+             It is build output, not a decision. Same for the two
+             attributes the panel itself writes. */
+          if (k.indexOf("astroCid") === 0) return;
+          if (k === "enter" || k === "dragging") return;
+          lines.push("/*   data-" + k + ": " + stage.dataset[k] + " */");
+        });
+      return lines.join("\n");
+    }
+
+    /* `ok` gates the confirm styling. A failure gets the label change
+       and nothing else, because a blocked copy that lights up the same
+       way a successful one does is worse than no feedback. */
+    function flash(btn, text, ok) {
+      var was = btn.textContent;
+      btn.textContent = text;
+      if (ok) btn.classList.add("is-ok");
+      setTimeout(function () {
+        btn.textContent = was;
+        btn.classList.remove("is-ok");
+      }, 1400);
+    }
+
+    function copy(btn) {
+      var text = cssBlock();
+      /* Clipboard access needs a secure context and permission. On a
+         plain-http dev host or a denied prompt it rejects, and a silent
+         failure would look like a working button. */
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(
+          function () {
+            flash(btn, "Copied", true);
+          },
+          function () {
+            fallback(text, btn);
+          },
+        );
+      } else {
+        fallback(text, btn);
+      }
+    }
+
+    function fallback(text, btn) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch (e) {}
+      document.body.removeChild(ta);
+      flash(btn, ok ? "Copied" : "Copy blocked", ok);
+      if (!ok) console.info("[lab] CSS block:\n" + text);
+    }
+
+    /* ---- wiring ----------------------------------------------- */
+
+    dial.addEventListener("input", function (e) {
+      var t = e.target;
+      if (!t || !t.tagName) return;
+      if (t.hasAttribute("data-var")) {
+        writeRange(t);
+        if (feedsLock(t.id)) applyLock();
+      } else if (t.hasAttribute("data-flag")) {
+        writeFlag(t);
+      } else if (t.hasAttribute("data-attr")) {
+        writeRadio(t);
+        slideSeg(t);
+        if (t.getAttribute("data-attr") === "variant") replayEnter();
+      } else if (t === lock) {
+        applyLock();
+      } else if (t === stress) {
+        applyStress();
+      }
+      save();
+    });
+
+    dial.addEventListener("click", function (e) {
+      var btn = e.target.closest ? e.target.closest("[data-act]") : null;
+      if (!btn) return;
+      if (btn.getAttribute("data-act") === "reset") {
+        reset();
+        replayEnter();
+      }
+      if (btn.getAttribute("data-act") === "copy") copy(btn);
+      if (btn.getAttribute("data-act") === "replay") replayEnter();
+    });
+
+    /* Drag state, both input paths. Pointer for the mouse and the
+       trackpad, keydown for the arrow keys, which move a range by one
+       step and are the only way to hit an exact number. */
+    dial.addEventListener("pointerdown", function (e) {
+      if (e.target && e.target.type === "range") drag(true);
+    });
+    dial.addEventListener("keydown", function (e) {
+      if (e.target && e.target.type === "range") drag(true);
+    });
+    /* On window, not on the panel: a drag that starts on the thumb and
+       ends with the pointer off the panel still has to end. */
+    window.addEventListener("pointerup", function () {
+      drag(false);
+    });
+    window.addEventListener("pointercancel", function () {
+      drag(false);
+    });
+    dial.addEventListener("keyup", function (e) {
+      if (e.target && e.target.type === "range") drag(false);
+    });
+
+    restore();
+    applyAll();
+  })();
+</script>
