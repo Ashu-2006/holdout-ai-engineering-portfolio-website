@@ -1,6 +1,6 @@
 /**
  * The contribution grid's hover behaviour, shared by the shipped figure
- * and the lab at /playground/heatmap.
+ * and the local grid lab (untracked, see .gitignore).
  *
  * ONE COPY, BECAUSE TWO WOULD DISAGREE. The lab exists to judge this
  * figure. A lab holding its own implementation of the interaction is a

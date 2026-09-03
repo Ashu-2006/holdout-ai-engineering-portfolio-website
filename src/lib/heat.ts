@@ -2,7 +2,7 @@
  * The contribution year, generated once and shared.
  *
  * WHY THIS IS A MODULE. The grid renders in two places now: the figure
- * on the home page and the lab at /playground/heatmap. A lab whose grid
+ * on the home page and a local grid lab (untracked). A lab whose grid
  * is a second copy of the generator is a lab that can quietly disagree
  * with the thing it is supposed to be judging, so both read from here.
  *

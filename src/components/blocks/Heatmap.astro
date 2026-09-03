@@ -9,7 +9,7 @@
  * with a caption and a source is evidence.
  *
  * THE YEAR ITSELF LIVES IN lib/heat.ts, not here. The grid renders in
- * two places now, this figure and the lab at /playground/heatmap, and a
+ * two places now, this figure and a local grid lab (untracked), and a
  * lab holding its own copy of the generator is a lab that can quietly
  * disagree with the thing it exists to judge. Seeded, so a rebuild is
  * byte-identical.
@@ -412,7 +412,7 @@ const levels = heatLevels;
 
 {/*
   The interaction layer, from scripts/heat.ts so the lab at
-  /playground/heatmap runs the same code rather than its own copy.
+  the local grid lab runs the same code rather than its own copy.
   Bundled and deferred, not is:inline: it is an interaction, not
   paint-critical state, so it has no reason to block.
 */}

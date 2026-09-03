@@ -46,10 +46,11 @@
  *
  * WHERE THE NUMBERS COME FROM. Every geometry value in the stylesheet
  * below is a --pc-* custom property declared once at the top of .pcard,
- * and those values were settled on /playground/card, which renders this
- * card alone against a live dial. To change the card's proportions,
- * dial them there and paste the block, rather than editing rules one at
- * a time and re-deriving what still fits.
+ * and those values were settled in a local card lab, which renders this
+ * card alone against a live dial and is deliberately untracked (see
+ * .gitignore): the numbers it produces ship, the lab does not. To
+ * change the card's proportions, dial them there and paste the block,
+ * rather than editing rules one at a time and re-deriving what fits.
  */
 import { Icon } from "astro-icon/components";
 import { dotDate, type Project } from "../../data/work";
@@ -218,7 +219,7 @@ function footerActions(p: Project) {
   /* ============================================================
      THE DIALLED CONTRACT.
 
-     These are the values settled in /playground/card, which renders
+     These are the values settled in the local card lab, which renders
      this card alone against a live control panel. The lab's "Copy CSS"
      button emits exactly this block, so a new decision arrives here as
      one paste rather than as a hunt through the rules below.
