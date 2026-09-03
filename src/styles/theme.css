@@ -219,11 +219,24 @@
   --space-group: 1.25rem; /* 20px  between related items */
   --space-block: 2.75rem; /* 44px  between sections; opened up from 32 for air */
 
-  /* ---- motion: 4 durations, 4 curves ---------------------- */
+  /* ---- motion: 4 durations, 4 curves ----------------------
+
+     --ease-swing REPLACED --ease-spring. The spring, cubic-bezier(0.34,
+     3.85, 0.64, 1), overshot by 285% and was unusable at any travel
+     under about 40px; nothing referenced it. The dock's lift keeps
+     those physics under its own --avatar-ease-out.
+
+     Swing is the curve the other three could not do: control point
+     (0, 0.55) puts velocity at its maximum on frame one, so the element
+     is already moving when the pointer lands and decelerates into
+     place. Reads as tracking intent rather than playing a clip. Use it
+     for hover feedback and anything that follows the pointer.
+     Reference: Obsidian's --anim-motion-swing, vault note "Obsidian's
+     motion system".                                              */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
-  --ease-spring: cubic-bezier(0.34, 3.85, 0.64, 1);
+  --ease-swing: cubic-bezier(0, 0.55, 0.45, 1);
 
   --transition-duration-instant: 80ms;
   --transition-duration-fast: 150ms;
