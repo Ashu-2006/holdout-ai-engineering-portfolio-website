@@ -45,7 +45,17 @@ const fmt = (d: Date) =>
             <span class="link-draw-child relative inline-block max-w-full truncate align-bottom text-ink">
               {post.data.title}
             </span>
-            <span class="mt-0.5 line-clamp-1 block text-ink-3">
+            {/*
+              NO `block` HERE. `line-clamp-1` sets display:-webkit-box,
+              which is what makes the clamp work at all, and the `block`
+              utility that used to sit next to it overrode that display.
+              The result computed to display:block with a live
+              -webkit-line-clamp:1 that did nothing: scrollHeight and
+              clientHeight both 48px, so every "one-line" description was
+              silently running to two and every row in the list was a
+              different height.
+            */}
+            <span class="mt-0.5 line-clamp-1 text-ink-3">
               {post.data.description}
             </span>
           </span>
