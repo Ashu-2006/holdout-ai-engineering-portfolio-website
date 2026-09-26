@@ -77,6 +77,13 @@ playwright-report/
 .vercel
 .env*
 
+# ---- the code knowledge graph stays local --------------------------
+# graphify-out/ is regenerated from the AST by `graphify . --code-only`
+# and patched by `graphify update .`. Same reasoning as dist/: derived
+# from source, never hand-edited, so it has no business in a diff.
+# graph.json alone is 280 KB and graph.html is 241 KB.
+graphify-out/
+
 # ---- screen recordings stay local ----------------------------------
 # public/reff/ is capture footage of the workbench: seconds of video per
 # iteration, tens of megabytes, and nothing links to it. public/ is copied
